@@ -46,8 +46,8 @@ public class GameScreen implements Screen{
             world.render(batch);
         batch.end();
             world.renderShapes();
-            //world.renderHitboxes();
-            //world.renderHud(batch);
+            world.renderHitboxes();
+            world.renderHud(batch);
     }
     @Override
     public void resize(int width, int height) {}

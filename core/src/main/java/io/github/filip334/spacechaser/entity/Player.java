@@ -9,7 +9,10 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
+import io.github.filip334.spacechaser.component.FuelComponent;
+import io.github.filip334.spacechaser.component.HealthComponent;
 import io.github.filip334.spacechaser.input.PlayerInput;
 /**
  *
@@ -19,6 +22,7 @@ public class Player extends Entity{
     
     // INPUT 
     PlayerInput input = new PlayerInput();
+    ShapeRenderer shaperend;
     
     // SPRITE
     private Sprite ship;
@@ -30,12 +34,18 @@ public class Player extends Entity{
     private float previousY;
     private float attemptedX;
 
-    private final float maxSpeed = 500f;
-    private final float acceleration = 350f;
+    private final float maxSpeed = 1500f;
+    private final float acceleration = 550f;
+    private final float boostAcceleration = 950f;
     private float rotation = 0f;
-    private final float rotationSpeed = 110f;
+    private final float rotationSpeed = 160f;
     private final float drag = 0.97f;
 
+    //
+    HealthComponent health;
+    FuelComponent fuel;
+    
+    
     //
     private Texture idleAnimation;
     
@@ -51,33 +61,34 @@ public class Player extends Entity{
         this.x = x;
         this.y = y;
         
-        String texturePath = "Fighter/";
-        String idlePath = texturePath + "Idle.png";
+        health = new HealthComponent(100);
+        fuel = new FuelComponent(100);
+        
+        String texturePath = "Original/";
+        String idlePath = texturePath + "ship.png";
         
         idleAnimation = new Texture(idlePath);
         ship = new Sprite(idleAnimation);
         
-        width = 192;
-        height = 192;
+        width = 128;
+        height = 128;
         ship.setSize(width, height);
         ship.setOriginCenter();
         
         originX = ship.getWidth() / 2f;
         originY = ship.getHeight() / 2f;
         
-        hitbox = new CompoundHitbox();
+        createHitbox();
+        shaperend = new ShapeRenderer();
     }
-    
-    
-    
     
     private void readInput() {
 
         input.left = Gdx.input.isKeyPressed(Input.Keys.A);
         input.right = Gdx.input.isKeyPressed(Input.Keys.D);
-        input.forward = Gdx.input.isKeyPressed(Input.Keys.W)/*&& fuel.hasFuel()*/;
+        input.forward = Gdx.input.isKeyPressed(Input.Keys.W) && fuel.hasFuel();
         input.backward = Gdx.input.isKeyPressed(Input.Keys.S);
-        input.boost = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)/*&& fuel.hasFuel()*/;
+        input.boost = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && fuel.hasFuel();
         input.shoot = Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
 
         if (input.shoot) {
@@ -87,11 +98,11 @@ public class Player extends Entity{
     private void handleMovement(float delta) {
 
         boolean isBoosting = input.boost && input.forward;
-        float currentAcceleration = isBoosting ? 550f : acceleration;
+        float currentAcceleration = isBoosting ? boostAcceleration : acceleration;
 
-        /*if (isBoosting) {
+        if (isBoosting) {
             fuel.consume(20f * delta);
-        }*/
+        }
 
         if (input.left) {
             rotation += rotationSpeed * delta;
@@ -137,7 +148,7 @@ public class Player extends Entity{
     public void update(float delta) {
         // UPDATE INPUT
         readInput();
-
+            
         // UPDATE ANIMATION SYSTEM
         //animator.update(delta);
 
@@ -149,19 +160,26 @@ public class Player extends Entity{
         //handleAnimation();
 
         ship.setRotation(rotation);
-        ship.setPosition(x, y);
+        ship.setCenter(x, y);
 
         //ship.setRegion(animator.getFrame());
-        //updateHitbox();
+        hitbox.update(this.x, this.y, rotation);
     }
 
     @Override
     public void render(SpriteBatch batch) {
         ship.draw(batch);
     }
+    public void debugRender(){
+        shaperend.begin(ShapeRenderer.ShapeType.Line);
+        hitbox.debugRender(shaperend);
+        shaperend.end();
+    }
     
     @Override
     public void dispose() {
+        
+        shaperend.dispose();
         /*idleAnimation.dispose();
         moveAnimation.dispose();
         boostAnimation.dispose();
@@ -174,4 +192,44 @@ public class Player extends Entity{
         attackAnimation.dispose();*/
     }
     
+    
+    private void createHitbox() {
+        hitbox = new CompoundHitbox();
+
+        // CENTRALNO TELO
+        hitbox.addBox(-10, 0, 75, 25);
+
+        // NOS
+        hitbox.addBox(38, 0, 25, 14);
+
+        // GORNJE KRILO
+        hitbox.addBox(-20, 28, 15, 42);
+
+        // DONJE KRILO
+        hitbox.addBox(-20, -28, 15, 42);
+
+        // GORNJI MOTOR
+        hitbox.addBox(-30, 18, 40, 10);
+
+        // DONJI MOTOR
+        hitbox.addBox(-30, -18, 40, 10);
+    }
+    
+    // GETERI / SETERI
+    
+    public float getMaxHealth(){
+        return health.getMaxHealth();
+    }
+    
+    public float getHealth(){
+        return health.getHealth();
+    }
+    
+    public float getMaxFuel(){
+        return fuel.getMaxFuel();
+    }
+    
+    public float getFuel(){
+        return fuel.getFuel();
+    }
 }
