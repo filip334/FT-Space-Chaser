@@ -1,0 +1,200 @@
+package io.github.filip334.spacechaser.collision;
+
+import com.badlogic.gdx.utils.Array;
+import io.github.filip334.spacechaser.entity.Bullet;
+import io.github.filip334.spacechaser.entity.Enemy;
+import io.github.filip334.spacechaser.entity.Player;
+import io.github.filip334.spacechaser.entity.Wall;
+
+public class CollisionSystem {
+    // ENEMY DAMAGE
+    private static final float ENEMY_DAMAGE = 33f;
+    
+    public int checkCollisions(Player player, Array<Bullet> bullets, Array<Enemy> enemies, Array<Wall> walls) {
+        int scoreGained = 0;
+
+        checkBulletsVsWalls(bullets, walls);
+        scoreGained += checkBulletsVsEnemies(bullets, enemies);
+        checkPlayerVsWalls(player, walls);
+        checkEnemiesVsWalls(enemies, walls);
+        checkPlayerVsEnemies(player, enemies);
+        return scoreGained;
+    }
+
+    private void checkBulletsVsWalls(Array<Bullet> bullets, Array<Wall> walls) {
+        for (Bullet bullet : bullets) {
+            if (bullet.isDead()) continue;
+
+            for (Wall wall : walls) {
+                if (bullet.getHitbox().overlaps(wall.getHitbox()) || bulletCrossedWall(bullet, wall)) {
+                    bullet.isDead(true);
+                    break;
+                }
+            }
+        }
+    }
+
+    /** Tests the complete bullet path so a fast projectile cannot skip a wall. */
+    private boolean bulletCrossedWall(Bullet bullet, Wall wall) {
+
+        float minX = wall.getX();
+        float maxX = wall.getX() + wall.getWidth();
+
+        float minY = wall.getY();
+        float maxY = wall.getY() + wall.getHeight();
+
+        float startX = bullet.getPreviousX();
+        float startY = bullet.getPreviousY();
+
+        float endX = bullet.getX();
+        float endY = bullet.getY();
+
+        float dx = endX - startX;
+        float dy = endY - startY;
+
+        float tMin = 0f;
+        float tMax = 1f;
+
+        // X
+        if (Math.abs(dx) < 0.00001f) {
+
+            if (startX < minX || startX > maxX) {
+                return false;
+            }
+
+        } else {
+
+            float tx1 = (minX - startX) / dx;
+            float tx2 = (maxX - startX) / dx;
+
+            float nearX = Math.min(tx1, tx2);
+            float farX = Math.max(tx1, tx2);
+
+            tMin = Math.max(tMin, nearX);
+            tMax = Math.min(tMax, farX);
+
+            if (tMin > tMax) {
+                return false;
+            }
+        }
+
+        // Y
+        if (Math.abs(dy) < 0.00001f) {
+
+            if (startY < minY || startY > maxY) {
+                return false;
+            }
+
+        } else {
+
+            float ty1 = (minY - startY) / dy;
+            float ty2 = (maxY - startY) / dy;
+
+            float nearY = Math.min(ty1, ty2);
+            float farY = Math.max(ty1, ty2);
+
+            tMin = Math.max(tMin, nearY);
+            tMax = Math.min(tMax, farY);
+
+            if (tMin > tMax) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private float[] clipSegment(float start, float delta, float min, float max) {
+        if (delta == 0f) {
+            return start >= min && start <= max ? new float[]{0f, 1f} : null;
+        }
+
+        float first = (min - start) / delta;
+        float second = (max - start) / delta;
+        return new float[]{Math.min(first, second), Math.max(first, second)};
+    }
+
+    private void checkPlayerVsWalls(Player player, Array<Wall> walls) {
+        if (!overlapsAnyWall(player, walls)) {
+            return;
+        }
+
+        // Try each axis separately first. This keeps the valid part of a
+        // diagonal movement and makes the ship slide along the wall.
+        player.restorePreviousX();
+        if (!overlapsAnyWall(player, walls)) {
+            return;
+        }
+
+        player.restorePreviousY();
+        if (!overlapsAnyWall(player, walls)) {
+            return;
+        }
+
+        player.restorePreviousPosition();
+    }
+
+    private boolean overlapsAnyWall(Player player, Array<Wall> walls) {
+        for (Wall wall : walls) {
+            if (player.getHitbox().overlaps(wall.getHitbox())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void checkEnemiesVsWalls(Array<Enemy> enemies, Array<Wall> walls) {
+        for (Enemy enemy : enemies) {
+            if (enemy.isDead()) continue;
+
+            for (Wall wall : walls) {
+                if (enemy.getHitbox().overlaps(wall.getHitbox())) {
+                    enemy.restorePreviousPosition();
+                    break;
+                }
+            }
+        }
+    }
+
+    private int checkBulletsVsEnemies(Array<Bullet> bullets, Array<Enemy> enemies) {
+        int scoreGained = 0;
+
+        for (int i = 0; i < bullets.size; i++) {
+            Bullet bullet = bullets.get(i);
+
+            if (bullet.isDead()) {
+                continue;
+            }
+
+            for (int j = 0; j < enemies.size; j++) {
+                Enemy enemy = enemies.get(j);
+
+                if (enemy.isDead()) {
+                    continue;
+                }
+
+                if (bullet.getHitbox().overlaps(enemy.getHitbox())) {
+                    bullet.isDead(true);
+                    enemy.isDead(true);
+                    scoreGained += 10;
+                    break;
+                }
+            }
+        }
+
+        return scoreGained;
+    }
+
+    private void checkPlayerVsEnemies(Player player, Array<Enemy> enemies) {
+        for (Enemy enemy : enemies) {
+            if (enemy.isDead()) {
+                continue;
+            }
+
+            if (player.getHitbox().overlaps(enemy.getHitbox())) {
+                player.takeDamage(ENEMY_DAMAGE);
+                enemy.isDead(true);
+            }
+        }
+    }
+}

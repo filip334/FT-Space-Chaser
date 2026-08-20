@@ -13,26 +13,57 @@ import io.github.filip334.spacechaser.collision.CompoundHitbox;
  * @author Todorovic
  */
 public abstract class Entity {
-    // KOORDINATE
+    
+    // POSITION
     protected float x,y;
     
-    // VELICINA
+    // SIZE
     protected float width,height;
+    
+    // ROTATION
+    protected float rotation;
     
     // HITBOX
     protected CompoundHitbox hitbox;
     
-    // STANJE
+    // STATE
     protected boolean isDead;
     
-    // TEKSTURA
+    // TEXTURE
     protected Texture entityTexture;
     
-    // GETERI/SETERI
+    // GET/SET
+    
+        // POSITION
+    public float getX(){
+        return this.x;
+    }
+    public float getY(){
+        return this.y;
+    }
+        // SIZE
+    public float getHeight(){
+        return this.height;
+    }
+    public float getWidth(){
+        return this.width;
+    }
+        // ROTATION
+    public float getRotation(){
+        return this.rotation;
+    }
+        // STATE
     public boolean isDead(){
         return isDead;
     }
+    public void isDead(boolean state){
+        isDead = state;
+    }
     
+        // HITBOX
+    public CompoundHitbox getHitbox(){
+        return this.hitbox;
+    }
     
     // UPDATE / RENDER / DISPOSE
     public abstract void update(float delta);

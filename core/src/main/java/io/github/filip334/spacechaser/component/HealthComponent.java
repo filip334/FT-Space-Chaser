@@ -1,18 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package io.github.filip334.spacechaser.component;
 
-/**
- *
- * @author Todorovic
- */
 public class HealthComponent {
     private float maxHealth;
     private float health;
 
-    // KONSTRUKTOR
+    // ---------------- CONSTRUCTOR ----------------
     
     public HealthComponent(float maxHealth) {
         this.maxHealth = maxHealth;

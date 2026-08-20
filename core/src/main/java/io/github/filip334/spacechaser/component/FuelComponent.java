@@ -1,19 +1,11 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package io.github.filip334.spacechaser.component;
 
-/**
- *
- * @author Todorovic
- */
 public class FuelComponent {
     //
     private float maxFuel;
     private float fuel;
 
-    // KONSTRUKTOR
+    // ---------------- CONSTRUCTOR ----------------
     
     public FuelComponent(float maxFuel) {
         this.maxFuel = maxFuel;

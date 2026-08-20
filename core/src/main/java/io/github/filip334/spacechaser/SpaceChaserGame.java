@@ -8,6 +8,6 @@ import io.github.filip334.spacechaser.screen.MainMenuScreen;
 public class SpaceChaserGame extends Game {
    @Override
     public void create() {
-        setScreen(new GameScreen(this));
+        setScreen(new MainMenuScreen(this));
     }
 }

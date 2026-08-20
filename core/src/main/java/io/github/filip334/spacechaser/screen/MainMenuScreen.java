@@ -1,11 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package io.github.filip334.spacechaser.screen;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -22,17 +19,14 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
-/**
- *
- * @author Todorovic
- */
-public class MainMenuScreen {
-    /*private Game game;
+public class MainMenuScreen implements Screen{
+    
+    //
+    private Game game;
     private Stage stage;
     private Skin skin;
     
-    
-
+    //
     public MainMenuScreen(Game game) {
         this.game = game;
 
@@ -169,5 +163,5 @@ public class MainMenuScreen {
         Texture texture = new Texture(pixmap);
         pixmap.dispose();
         return texture;
-    }*/
+    }
 }

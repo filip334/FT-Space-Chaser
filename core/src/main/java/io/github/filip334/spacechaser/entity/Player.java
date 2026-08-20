@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package io.github.filip334.spacechaser.entity;
 
 import com.badlogic.gdx.Gdx;
@@ -14,15 +10,11 @@ import io.github.filip334.spacechaser.collision.CompoundHitbox;
 import io.github.filip334.spacechaser.component.FuelComponent;
 import io.github.filip334.spacechaser.component.HealthComponent;
 import io.github.filip334.spacechaser.input.PlayerInput;
-/**
- *
- * @author Todorovic
- */
+
 public class Player extends Entity{
     
     // INPUT 
     PlayerInput input = new PlayerInput();
-    ShapeRenderer shaperend;
     
     // SPRITE
     private Sprite ship;
@@ -32,12 +24,10 @@ public class Player extends Entity{
     private float velocityY = 0;
     private float previousX;
     private float previousY;
-    private float attemptedX;
 
     private final float maxSpeed = 1500f;
     private final float acceleration = 550f;
     private final float boostAcceleration = 950f;
-    private float rotation = 0f;
     private final float rotationSpeed = 160f;
     private final float drag = 0.97f;
 
@@ -48,14 +38,8 @@ public class Player extends Entity{
     
     //
     private Texture idleAnimation;
-    
-    // COMBAT
-    private float attackTimer = 0f;
 
-    
-    float originX;
-    float originY;
-    
+    // ---------------- CONSTRUCTOR ----------------
     
     public Player(float x,float y) {
         this.x = x;
@@ -75,13 +59,10 @@ public class Player extends Entity{
         ship.setSize(width, height);
         ship.setOriginCenter();
         
-        originX = ship.getWidth() / 2f;
-        originY = ship.getHeight() / 2f;
-        
         createHitbox();
-        shaperend = new ShapeRenderer();
     }
     
+    // INPUT MOVEMENT
     private void readInput() {
 
         input.left = Gdx.input.isKeyPressed(Input.Keys.A);
@@ -90,10 +71,7 @@ public class Player extends Entity{
         input.backward = Gdx.input.isKeyPressed(Input.Keys.S);
         input.boost = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && fuel.hasFuel();
         input.shoot = Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
-
-        if (input.shoot) {
-            //attackTimer = 0.18f;
-        }
+        
     }
     private void handleMovement(float delta) {
 
@@ -131,7 +109,6 @@ public class Player extends Entity{
         previousY = y;
         x += velocityX * delta;
         y += velocityY * delta;
-        attemptedX = x;
 
         velocityX *= Math.pow(drag, delta * 60);
         velocityY *= Math.pow(drag, delta * 60);
@@ -144,6 +121,84 @@ public class Player extends Entity{
         }
     }
     
+    // DEMAGE
+    public void takeDamage(float damage){
+        health.damage(damage);
+        if(health.isDead()){
+            this.isDead = true;
+        }
+    }
+    
+    // HITBOX
+    private void createHitbox() {
+        hitbox = new CompoundHitbox();
+
+        // CENTAR
+        hitbox.addBox(-10, 0, 75, 25);
+
+        // FRONT
+        hitbox.addBox(38, 0, 25, 14);
+
+        // LEFT WING
+        hitbox.addBox(-20, 28, 15, 42);
+
+        // RIGHT WING
+        hitbox.addBox(-20, -28, 15, 42);
+
+        // LEFT ENGINE
+        hitbox.addBox(-30, 18, 40, 10);
+
+        // RIGHT ENGINE
+        hitbox.addBox(-30, -18, 40, 10);
+    }
+    
+    // GET / SET
+    
+        // HEALTH
+    public float getMaxHealth(){
+        return health.getMaxHealth();
+    }
+    public float getHealth(){
+        return health.getHealth();
+    }
+    
+        // FUEL
+    public float getMaxFuel(){
+        return fuel.getMaxFuel();
+    }
+    public float getFuel(){
+        return fuel.getFuel();
+    }
+    
+        // 
+    public void restorePreviousX() {
+        this.x = previousX;
+        updateTransform();
+    }
+    public void restorePreviousY() {
+        this.y = previousY;
+        updateTransform();
+    }
+    public void restorePreviousPosition() {
+        this.x = previousX;
+        this.y = previousY;
+        updateTransform();
+    }
+
+        //
+    private void updateTransform() {
+        ship.setCenter(x, y);
+        ship.setRotation(rotation);
+        hitbox.update(x, y, rotation);
+    }
+    
+        //
+    public boolean wantsToShoot(){
+        return input.shoot;
+    }
+    
+    // UPDATE / RENDER / DISPOSE
+    
     @Override
     public void update(float delta) {
         // UPDATE INPUT
@@ -152,34 +207,28 @@ public class Player extends Entity{
         // UPDATE ANIMATION SYSTEM
         //animator.update(delta);
 
-        if (attackTimer > 0f) {
-            attackTimer -= delta;
-        }
-
         handleMovement(delta);
         //handleAnimation();
 
-        ship.setRotation(rotation);
+        /*ship.setRotation(rotation);
         ship.setCenter(x, y);
 
         //ship.setRegion(animator.getFrame());
-        hitbox.update(this.x, this.y, rotation);
+        hitbox.update(this.x, this.y, rotation);*/
+        updateTransform();
     }
 
     @Override
     public void render(SpriteBatch batch) {
         ship.draw(batch);
     }
-    public void debugRender(){
-        shaperend.begin(ShapeRenderer.ShapeType.Line);
-        hitbox.debugRender(shaperend);
-        shaperend.end();
+    public void debugRender(ShapeRenderer shapeRenderer){
+        hitbox.debugRender(shapeRenderer);
     }
     
     @Override
     public void dispose() {
         
-        shaperend.dispose();
         /*idleAnimation.dispose();
         moveAnimation.dispose();
         boostAnimation.dispose();
@@ -190,46 +239,5 @@ public class Player extends Entity{
             turnRightAnimation.dispose();
         }
         attackAnimation.dispose();*/
-    }
-    
-    
-    private void createHitbox() {
-        hitbox = new CompoundHitbox();
-
-        // CENTRALNO TELO
-        hitbox.addBox(-10, 0, 75, 25);
-
-        // NOS
-        hitbox.addBox(38, 0, 25, 14);
-
-        // GORNJE KRILO
-        hitbox.addBox(-20, 28, 15, 42);
-
-        // DONJE KRILO
-        hitbox.addBox(-20, -28, 15, 42);
-
-        // GORNJI MOTOR
-        hitbox.addBox(-30, 18, 40, 10);
-
-        // DONJI MOTOR
-        hitbox.addBox(-30, -18, 40, 10);
-    }
-    
-    // GETERI / SETERI
-    
-    public float getMaxHealth(){
-        return health.getMaxHealth();
-    }
-    
-    public float getHealth(){
-        return health.getHealth();
-    }
-    
-    public float getMaxFuel(){
-        return fuel.getMaxFuel();
-    }
-    
-    public float getFuel(){
-        return fuel.getFuel();
     }
 }

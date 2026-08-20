@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package io.github.filip334.spacechaser.animation;
 
 import com.badlogic.gdx.graphics.Texture;
@@ -10,10 +6,6 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- *
- * @author Todorovic
- */
 public class AnimationController {
      public enum PlayMode {
         NORMAL,
