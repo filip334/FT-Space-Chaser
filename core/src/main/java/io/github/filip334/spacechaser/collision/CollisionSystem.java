@@ -114,24 +114,35 @@ public class CollisionSystem {
         return new float[]{Math.min(first, second), Math.max(first, second)};
     }
 
-    private void checkPlayerVsWalls(Player player, Array<Wall> walls) {
+    private void checkPlayerVsWalls(
+        Player player,
+        Array<Wall> walls) {
+
         if (!overlapsAnyWall(player, walls)) {
             return;
         }
 
-        // Try each axis separately first. This keeps the valid part of a
-        // diagonal movement and makes the ship slide along the wall.
-        player.restorePreviousX();
+        /*
+         * Prvo pokušavamo da poništimo samo rotaciju.
+         *
+         * Ako je nova rotacija uzrokovala sudar,
+         * vraćamo staru rotaciju.
+         */
+        player.restorePreviousRotation();
+
         if (!overlapsAnyWall(player, walls)) {
             return;
         }
 
-        player.restorePreviousY();
-        if (!overlapsAnyWall(player, walls)) {
-            return;
-        }
-
-        player.restorePreviousPosition();
+        /*
+         * Ako je igrač i dalje u zidu,
+         * CollisionResolver rešava poziciju
+         * i velocity.
+         */
+        CollisionResolver.resolvePlayerVsWalls(
+                player,
+                walls
+        );
     }
 
     private boolean overlapsAnyWall(Player player, Array<Wall> walls) {

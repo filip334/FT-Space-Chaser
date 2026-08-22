@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Vector2;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
 import io.github.filip334.spacechaser.component.FuelComponent;
 import io.github.filip334.spacechaser.component.HealthComponent;
@@ -22,9 +23,11 @@ public class Player extends Entity{
     // PHYSICS
     private float velocityX = 0;
     private float velocityY = 0;
+    
     private float previousX;
     private float previousY;
-
+    private float previousRotation;
+    
     private final float maxSpeed = 1500f;
     private final float acceleration = 550f;
     private final float boostAcceleration = 950f;
@@ -75,6 +78,10 @@ public class Player extends Entity{
     }
     private void handleMovement(float delta) {
 
+        previousX = x;
+        previousY = y;
+        previousRotation = rotation;
+        
         boolean isBoosting = input.boost && input.forward;
         float currentAcceleration = isBoosting ? boostAcceleration : acceleration;
 
@@ -104,9 +111,7 @@ public class Player extends Entity{
             velocityX -= dirX * acceleration * 0.6f * delta;
             velocityY -= dirY * acceleration * 0.6f * delta;
         }
-
-        previousX = x;
-        previousY = y;
+        
         x += velocityX * delta;
         y += velocityY * delta;
 
@@ -170,6 +175,29 @@ public class Player extends Entity{
         return fuel.getFuel();
     }
     
+    public float getVelocityX() {
+    return velocityX;
+    }
+
+    public float getVelocityY() {
+        return velocityY;
+    }
+
+    public void setVelocityX(float velocityX) {
+        this.velocityX = velocityX;
+    }
+
+    public void setVelocityY(float velocityY) {
+        this.velocityY = velocityY;
+    }
+    public void setVelocity(float velocityX, float velocityY) {
+        this.velocityX = velocityX;
+        this.velocityY = velocityY;
+    }
+    public Vector2 getPosition() {
+        return new Vector2(x, y);
+    }
+    
         // 
     public void restorePreviousX() {
         this.x = previousX;
@@ -184,12 +212,29 @@ public class Player extends Entity{
         this.y = previousY;
         updateTransform();
     }
+    public void restorePreviousRotation() {
+        rotation = previousRotation;
+        updateTransform();
+    }
+    public void restorePreviousState(){
+        x = previousX;
+        y = previousY;
+        rotation = previousRotation;
+
+        updateTransform();
+    }
 
         //
     private void updateTransform() {
         ship.setCenter(x, y);
         ship.setRotation(rotation);
         hitbox.update(x, y, rotation);
+    }
+    
+    public void savePreviousState() {
+        previousX = x;
+        previousY = y;
+        previousRotation = rotation;
     }
     
         //
@@ -217,7 +262,9 @@ public class Player extends Entity{
         hitbox.update(this.x, this.y, rotation);*/
         updateTransform();
     }
-
+    public void updateHitbox(){
+        hitbox.update(x, y, rotation);
+    }
     @Override
     public void render(SpriteBatch batch) {
         ship.draw(batch);
