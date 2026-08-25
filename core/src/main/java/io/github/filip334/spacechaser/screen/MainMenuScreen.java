@@ -11,9 +11,8 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
+import io.github.filip334.spacechaser.world.MultiplayerClient;
 
 public class MainMenuScreen implements Screen {
 
@@ -501,9 +500,11 @@ public class MainMenuScreen implements Screen {
                         break;
 
                     case 1:
-                        System.out.println(
-                            "Multiplayer selected"
+
+                        game.setScreen(
+                            new MultiplayerScreen(game)
                         );
+
                         break;
 
                     case 2:

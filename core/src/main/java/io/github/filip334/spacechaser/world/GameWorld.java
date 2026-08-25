@@ -11,26 +11,36 @@ import io.github.filip334.spacechaser.collision.CollisionSystem;
 import io.github.filip334.spacechaser.entity.Bullet;
 import io.github.filip334.spacechaser.entity.Enemy;
 import io.github.filip334.spacechaser.entity.Player;
+import io.github.filip334.spacechaser.entity.Wall;
+import io.github.filip334.spacechaser.renderer.EntityRenderer;
 import io.github.filip334.spacechaser.renderer.HudRenderer;
 import io.github.filip334.spacechaser.screen.MainMenuScreen;
 
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class GameWorld {
-    
+
     // GAME
     private final Game game;
 
     // ENTITIES
-    private final Player player;
+    // VISE igraca po ID-ju (id 0 = lokalni igrac u singleplayeru)
+    private final Map<Integer, Player> players = new LinkedHashMap<>();
+    private static final int LOCAL_PLAYER_ID = 0;
+
     private final Array<Bullet> bullets = new Array<>();
     private final Array<Enemy> enemies = new Array<>();
     private final EncounterField encounterField;
 
-    // RENDER
-    private final ShapeRenderer shapeRenderer = new ShapeRenderer();
-    private final HudRenderer hudRenderer = new HudRenderer();
+    // RENDER (mogu biti null ako je GameWorld napravljen bez Game-a, npr. na serveru)
+    private final EntityRenderer entityRenderer;
+    private final ShapeRenderer shapeRenderer;
+    private final HudRenderer hudRenderer;
 
     // SYSTEMS
-   private final CollisionSystem collisionSystem = new CollisionSystem();
+    private final CollisionSystem collisionSystem = new CollisionSystem();
 
     // GAME STATE
     private float gameTime = 0f;
@@ -38,20 +48,41 @@ public class GameWorld {
     private float shootCooldown = 0f;
     private static final float SHOOT_INTERVAL = 0.20f;
 
-    // RESOURCES
-    private final Texture bulletTexture;
-
     // CONFIG
     private static final int ENEMY_WAVE_SIZE = 3;
 
-    //
-    public GameWorld(Game game) {
+    // ---------------- CONSTRUCTORS ----------------
 
+    /**
+     * Bez-arg konstruktor - NE pravi Texture/ShapeRenderer objekte (ne zahteva GL kontekst).
+     * Koristi se na serveru (headless) i u testovima.
+     */
+    public GameWorld() {
+        this.game = null;
+        this.entityRenderer = null;
+        this.shapeRenderer = null;
+        this.hudRenderer = null;
+
+        // NE dodajemo default igraca ovde - server ovaj konstruktor koristi
+        // i igraci se dodaju dinamicki preko spawnPlayer(id) kad se konektuju.
+        encounterField = new EncounterField();
+    }
+
+    /**
+     * Singleplayer konstruktor sa renderovanjem (klijent).
+     */
+    public GameWorld(Game game) {
         this.game = game;
 
-        bulletTexture = new Texture("Original/bullet.png");
+        Texture playerTexture = new Texture("Original/ship (1).png");
+        Texture enemyTexture = new Texture("Original/projectile.png");
+        Texture bulletTexture = new Texture("Original/bullet.png");
 
-        player = new Player(100, 100);
+        entityRenderer = new EntityRenderer(playerTexture, enemyTexture, bulletTexture);
+        shapeRenderer = new ShapeRenderer();
+        hudRenderer = new HudRenderer();
+
+        players.put(LOCAL_PLAYER_ID, new Player(100, 100));
         encounterField = new EncounterField();
 
         spawnEnemyWave();
@@ -64,48 +95,84 @@ public class GameWorld {
         gameTime += delta;
         encounterField.update();
 
-        updatePlayer(delta);
+        updatePlayers(delta);
         updateEnemies(delta);
-
-        handleShooting();
-
+        handleShooting(delta);
         updateBullets(delta);
 
-        score += collisionSystem.checkCollisions(player, bullets, enemies, encounterField.getWalls());
+        for (Player p : players.values()) {
+            score += collisionSystem.checkCollisions(p, bullets, enemies, encounterField.getWalls());
+        }
 
         handleGameOver();
         cleanupDeadEntities();
 
-        if (enemies.size == 0 && !player.isDead()) {
+        if (enemies.size == 0 && !allPlayersDead()) {
             spawnEnemyWave();
-        }
-        if (shootCooldown > 0f) {
-            shootCooldown -= delta;
         }
     }
 
     // ---------------- UPDATE PARTS ----------------
 
-    private void updatePlayer(float delta) {
-        player.update(delta);
+    private void updatePlayers(float delta) {
+        for (Map.Entry<Integer, Player> entry : players.entrySet()) {
+            int id = entry.getKey();
+            Player p = entry.getValue();
+
+            // Lokalni igrac na klijentu (singleplayer/host) cita tastaturu.
+            // Svi ostali (mrezni igraci na klijentu, SVI igraci na serveru)
+            // koriste input koji je vec postavljen preko applyInput().
+            boolean isLocalKeyboardPlayer = (game != null) && (id == LOCAL_PLAYER_ID);
+
+            if (isLocalKeyboardPlayer) {
+                p.update(delta);
+            } else {
+                p.updateNetworked(delta);
+            }
+        }
     }
+
     private void updateEnemies(float delta) {
-         for (int i = 0; i < enemies.size; i++) {
-            enemies.get(i).update(delta, player);
+        Player target = getPrimaryTarget();
+        for (int i = 0; i < enemies.size; i++) {
+            enemies.get(i).update(delta, target);
             enemies.get(i).applySeparation(enemies, delta);
         }
     }
-    private void updateBullets(float delta){
-        for(Bullet b : bullets){
+
+    private void updateBullets(float delta) {
+        for (Bullet b : bullets) {
             b.update(delta);
         }
     }
-    
+
+    /**
+     * Enemy.update() trenutno prima jednog Player-a kao metu.
+     * Dok ne prosirimo Enemy da bira izmedju vise igraca, gadja prvog zivog.
+     * TODO: prosiriti Enemy/StateMachine da bira najblizeg/bilo kog zivog igraca.
+     */
+    private Player getPrimaryTarget() {
+        for (Player p : players.values()) {
+            if (!p.isDead()) return p;
+        }
+        return players.get(LOCAL_PLAYER_ID);
+    }
+
+    private boolean allPlayersDead() {
+        for (Player p : players.values()) {
+            if (!p.isDead()) return false;
+        }
+        return true;
+    }
 
     // ---------------- GAME OVER ----------------
 
     private void handleGameOver() {
-        if (player.isDead()) {
+        // game je null na serveru (headless) - server ne menja ekrane, samo simulira
+        if (game == null) return;
+
+        Player local = players.get(LOCAL_PLAYER_ID);
+        if (local != null && local.isDead()) {
             game.setScreen(new MainMenuScreen(game));
         }
     }
@@ -113,48 +180,57 @@ public class GameWorld {
     // ---------------- RENDER ----------------
 
     public void render(SpriteBatch batch) {
-        player.render(batch);
-        for (Bullet b : bullets) b.render(batch);
-        for (Enemy e : enemies) e.render(batch);
-        
+        if (entityRenderer == null) return; // headless world (server) - nema sta da se crta
+
+        for (Player p : players.values()) {
+            entityRenderer.render(batch, p);
+        }
+
+        for (Bullet b : bullets) entityRenderer.render(batch, b);
+        for (Enemy e : enemies) entityRenderer.render(batch, e);
     }
 
     public void renderShapes() {
+        if (shapeRenderer == null) return;
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         encounterField.render(shapeRenderer);
         shapeRenderer.end();
     }
 
-    
-    public void renderHitboxes(){
-         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        
-        player.debugRender(shapeRenderer);
-        for(Enemy e : enemies) e.debugRender(shapeRenderer);
-        for(Bullet b : bullets) b.debugRender(shapeRenderer);
+    public void renderHitboxes() {
+        if (shapeRenderer == null) return;
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        for (Player p : players.values()) p.debugRender(shapeRenderer);
+        for (Enemy e : enemies) e.debugRender(shapeRenderer);
+        for (Bullet b : bullets) b.debugRender(shapeRenderer);
         shapeRenderer.end();
     }
-    
-    public void renderHud(SpriteBatch batch){
-        hudRenderer.render(batch, player.getHealth(), player.getMaxHealth(), player.getFuel(), player.getMaxFuel(), score, gameTime);
+
+    public void renderHud(SpriteBatch batch) {
+        if (hudRenderer == null) return;
+
+        Player local = players.get(LOCAL_PLAYER_ID);
+        if (local == null) return;
+
+        hudRenderer.render(batch, local.getHealth(), local.getMaxHealth(),
+                local.getFuel(), local.getMaxFuel(), score, gameTime);
     }
+
     // ---------------- SPAWN ----------------
 
     private void spawnEnemyWave() {
-
         for (int i = 0; i < ENEMY_WAVE_SIZE; i++) {
-
             float x = MathUtils.random(80f, Gdx.graphics.getWidth() - 80f);
             float y = MathUtils.random(80f, Gdx.graphics.getHeight() - 80f);
-
             enemies.add(new Enemy(x, y));
         }
     }
-    
-    // ---------------- CLEAN UP ----------------
-    private void cleanupDeadEntities() {
 
+    // ---------------- CLEAN UP ----------------
+
+    private void cleanupDeadEntities() {
         for (int i = bullets.size - 1; i >= 0; i--) {
             if (bullets.get(i).isDead()) {
                 bullets.removeIndex(i);
@@ -163,23 +239,29 @@ public class GameWorld {
 
         for (int i = enemies.size - 1; i >= 0; i--) {
             if (enemies.get(i).isDead()) {
-                enemies.get(i).dispose();
                 enemies.removeIndex(i);
             }
         }
     }
-    
+
     // ---------------- HANDLE ----------------
-   
-    private void handleShooting() {
 
-        if (!player.wantsToShoot()) return;
-
-         if (shootCooldown > 0f) {
-            return;
+    private void handleShooting(float delta) {
+        if (shootCooldown > 0f) {
+            shootCooldown -= delta;
         }
-        
-        float rot = (float) Math.toRadians(player.getRotation());
+
+        for (Player p : players.values()) {
+            if (!p.wantsToShoot()) continue;
+            if (shootCooldown > 0f) continue;
+
+            spawnBulletFor(p);
+            shootCooldown = SHOOT_INTERVAL;
+        }
+    }
+
+    private void spawnBulletFor(Player p) {
+        float rot = (float) Math.toRadians(p.getRotation());
 
         float cos = (float) Math.cos(rot);
         float sin = (float) Math.sin(rot);
@@ -188,37 +270,56 @@ public class GameWorld {
         float localNoseX = 50f;
         float localNoseY = 0f;
 
-        // Rotacija lokalne tačke u world space
-        float noseX = player.getX()
-                + localNoseX * cos
-                - localNoseY * sin;
+        float noseX = p.getX() + localNoseX * cos - localNoseY * sin;
+        float noseY = p.getY() + localNoseX * sin + localNoseY * cos;
 
-        float noseY = player.getY()
-                + localNoseX * sin
-                + localNoseY * cos;
-
-        bullets.add(
-            new Bullet(
-                noseX,
-                noseY,
-                cos,
-                sin,
-                bulletTexture
-            )
-        );
-        shootCooldown = SHOOT_INTERVAL;
+        bullets.add(new Bullet(noseX, noseY, cos, sin, p.getRotation()));
     }
+
     // ---------------- DISPOSE ----------------
 
     public void dispose() {
+        if (shapeRenderer != null) shapeRenderer.dispose();
+        if (entityRenderer != null) entityRenderer.dispose();
+        if (hudRenderer != null) hudRenderer.dispose();
+    }
 
-        player.dispose();
-        shapeRenderer.dispose();
-        bulletTexture.dispose();
+    // ---------------- MULTIPLAYER PLAYER MANAGEMENT ----------------
 
-        for (Bullet b : bullets) b.dispose();
-        for (Enemy e : enemies) e.dispose();
+    public void spawnPlayer(int playerId) {
+        if (players.containsKey(playerId)) return;
 
-        hudRenderer.dispose();
+        float x = MathUtils.random(80f, Gdx.graphics.getWidth() - 80f);
+        float y = MathUtils.random(80f, Gdx.graphics.getHeight() - 80f);
+
+        players.put(playerId, new Player(x, y));
+    }
+
+    public void removePlayer(int playerId) {
+        players.remove(playerId);
+    }
+
+    public Player getPlayerById(int playerId) {
+        return players.get(playerId);
+    }
+
+    public Collection<Player> getPlayers() {
+        return players.values();
+    }
+
+    public Map<Integer, Player> getPlayersMap() {
+        return players;
+    }
+
+    public Array<Enemy> getEnemies() {
+        return enemies;
+    }
+
+    public Array<Bullet> getBullets() {
+        return bullets;
+    }
+
+    public Array<Wall> getWalls() {
+        return encounterField.getWalls();
     }
 }

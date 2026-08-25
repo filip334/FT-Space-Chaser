@@ -40,4 +40,10 @@ public class HealthComponent {
     public float getMaxHealth(){
         return maxHealth;
     }
+
+    public void setHealth(float health) {
+        this.health = health;
+    }
+    
+    
 }

@@ -8,12 +8,12 @@ import io.github.filip334.spacechaser.entity.Wall;
 public class EncounterField {
     
     //
-    private static final int GRID_COLS = 9;
-    private static final int GRID_ROWS = 9;
+    private static final int GRID_COLS = 10;
+    private static final int GRID_ROWS = 10;
 
     private static final float WALL_THICKNESS = 6f;
     private static final float MAP_PADDING = 12f;
-
+    private static final float CELL_SIZE = 70f;
     // 
     private Array<Wall> walls;
 
@@ -37,24 +37,70 @@ public class EncounterField {
         screenHeight = Gdx.graphics.getHeight();
         fieldX = MAP_PADDING;
         fieldY = MAP_PADDING;
-        fieldWidth = screenWidth - MAP_PADDING * 2f;
-        fieldHeight = screenHeight - MAP_PADDING * 2f;
+        fieldWidth = GRID_COLS * CELL_SIZE;
+        fieldHeight = GRID_ROWS * CELL_SIZE;
 
-        cellWidth = fieldWidth / GRID_COLS;
-        cellHeight = fieldHeight / GRID_ROWS;
+        cellWidth = CELL_SIZE;
+        cellHeight = CELL_SIZE;
 
         walls.clear();
 
-        addHorizontalWall(0, 9, 0);
-        addHorizontalWall(0, 9, 9);
-        addVerticalWall(0, 0, 9);
-        addVerticalWall(9, 0, 9);
+        addHorizontalWall(0, 10, 0);
+        addHorizontalWall(0, 10, 10);
+        addVerticalWall(0, 10, 0);
+        addVerticalWall(0, 10, 10);
 
         // Svaki poziv dodaje i odraz oko vertikalne i horizontalne ose mape.
         // Cetiri kratka, simetricna ostrva. Izmedju njih je sirok centralni
         // prolaz, a svaki spoljasnji prolaz je dovoljno sirok za rotaciju broda.
-        addMirroredHorizontal(1.3f, 2.6f, 2.2f);
-        addMirroredVertical(2.2f, 1.3f, 2.6f);
+        
+        /*//dole levo
+        addHorizontalWall(1, 5, 1);
+        addVerticalWall(1, 5, 1);
+        
+        //gore levo
+        addVerticalWall(6, 9, 1);
+        addHorizontalWall(1, 5, 9);
+        
+        //dole levo
+        addHorizontalWall(3, 5, 3);
+        addVerticalWall(3, 5, 3);
+        
+        //gore levo
+        addVerticalWall(6, 8, 3);
+        addHorizontalWall(3, 5, 8);
+        
+        //centar levo
+        addVerticalWall(4, 7, 4);
+        
+        //centar desno
+        addVerticalWall(4, 5, 5);
+        addVerticalWall(6, 7, 5);
+        
+        //DESNA
+        
+        //dole desno
+        addHorizontalWall(6, 9, 1);
+        addVerticalWall(1, 5, 9);
+        
+        //gore desno
+        addVerticalWall(6, 9, 9);
+        addHorizontalWall(6, 9, 9);
+        
+        //dole desno
+        addHorizontalWall(6, 8, 3);
+        addVerticalWall(3, 5, 8);
+        
+        //gore desno
+        addVerticalWall(6, 8, 8);
+        addHorizontalWall(6, 8, 8);
+        
+        //centar desno
+        addVerticalWall(4, 7, 7);
+        
+        //centar levo
+        addVerticalWall(4, 5, 6);
+        addVerticalWall(6, 7, 6);*/
     }
 
     private void addHorizontalWall(float startCol, float endCol, float row) {
@@ -65,7 +111,7 @@ public class EncounterField {
         walls.add(new Wall(x, y, width, WALL_THICKNESS));
     }
 
-    private void addVerticalWall(float col, float startRow, float endRow) {
+    private void addVerticalWall(float startRow, float endRow, float col) {
         float x = fieldX + col * cellWidth - WALL_THICKNESS / 2f;
         float y = fieldY + startRow * cellHeight;
         float height = (endRow - startRow) * cellHeight;

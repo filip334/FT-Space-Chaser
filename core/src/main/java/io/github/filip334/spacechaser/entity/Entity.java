@@ -1,27 +1,34 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package io.github.filip334.spacechaser.entity;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
+import io.github.filip334.spacechaser.component.HealthComponent;
 
-/**
- *
- * @author Todorovic
- */
 public abstract class Entity {
     
     // POSITION
     protected float x,y;
+    protected float previousX,previousY;
+    
+    // ROTATION
+    protected float rotation;
+    protected float previousRotation;
     
     // SIZE
     protected float width,height;
     
-    // ROTATION
-    protected float rotation;
+    // SPEED
+    protected float maxSpeed;
+    protected float acceleration;
+    protected float boostAcceleration;
+    protected float rotationSpeed;
+    protected final float drag = 0.97f;
+    
+    protected float velocityX = 0;
+    protected float velocityY = 0;
+    
+    // HEALT
+    HealthComponent health;
     
     // HITBOX
     protected CompoundHitbox hitbox;
@@ -65,6 +72,13 @@ public abstract class Entity {
     public void isDead(boolean state){
         isDead = state;
     }
+    public void setPosition(float x,float y){
+        this.x = x;
+        this.y = y;
+    }
+    public void setRotation(float rotation){
+        this.rotation = rotation;
+    }
     
         // HITBOX
     public CompoundHitbox getHitbox(){
@@ -73,11 +87,4 @@ public abstract class Entity {
     
     // UPDATE / RENDER / DISPOSE
     public abstract void update(float delta);
-    public abstract void render(SpriteBatch batch);
-    public void dispose(){
-        if (entityTexture != null) {
-            entityTexture.dispose();
-        }
-    }
-   
 }

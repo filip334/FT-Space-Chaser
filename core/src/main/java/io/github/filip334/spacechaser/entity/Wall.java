@@ -36,11 +36,6 @@ public class Wall extends Entity {
 
     // ---------------- RENDER ----------------
     
-    @Override
-    public void render(SpriteBatch batch) {
-        // TRENUTNO PREKO SHAPE
-    }
-    
     public void render(ShapeRenderer shapeRenderer) {
         shapeRenderer.setColor(Color.DARK_GRAY);
         shapeRenderer.rect(x, y, width, height);

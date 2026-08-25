@@ -3,8 +3,6 @@ package io.github.filip334.spacechaser.entity;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
@@ -17,50 +15,36 @@ public class Player extends Entity{
     // INPUT 
     PlayerInput input = new PlayerInput();
     
-    // SPRITE
-    private Sprite ship;
-    
-    // PHYSICS
-    private float velocityX = 0;
-    private float velocityY = 0;
-    
-    private float previousX;
-    private float previousY;
-    private float previousRotation;
-    
-    private final float maxSpeed = 1500f;
-    private final float acceleration = 550f;
-    private final float boostAcceleration = 950f;
-    private final float rotationSpeed = 160f;
-    private final float drag = 0.97f;
-
     //
-    HealthComponent health;
     FuelComponent fuel;
     
-    
     //
-    private Texture idleAnimation;
+    //private Texture idleAnimation;
 
     // ---------------- CONSTRUCTOR ----------------
     
-    public Player(float x,float y) {
+    public Player() {
+    }
+
+    public Player(float x, float y) {
         this.x = x;
         this.y = y;
         
-        health = new HealthComponent(100);
+        this.maxSpeed = 1500f;
+        this.acceleration = 550f;
+        this.boostAcceleration = 950f;
+        this.rotationSpeed = 160f;
+        
+        this.health = new HealthComponent(100);
         fuel = new FuelComponent(100);
         
         String texturePath = "Original/";
         String idlePath = texturePath + "ship.png";
         
-        idleAnimation = new Texture(idlePath);
-        ship = new Sprite(idleAnimation);
+        //idleAnimation = new Texture(idlePath);
         
         width = 128;
         height = 128;
-        ship.setSize(width, height);
-        ship.setOriginCenter();
         
         createHitbox();
     }
@@ -145,10 +129,10 @@ public class Player extends Entity{
         hitbox.addBox(38, 0, 25, 14);
 
         // LEFT WING
-        hitbox.addBox(-20, 28, 15, 42);
+        hitbox.addBox(-20, 28, 15, 25);
 
         // RIGHT WING
-        hitbox.addBox(-20, -28, 15, 42);
+        hitbox.addBox(-20, -28, 15, 25);
 
         // LEFT ENGINE
         hitbox.addBox(-30, 18, 40, 10);
@@ -197,7 +181,16 @@ public class Player extends Entity{
     public Vector2 getPosition() {
         return new Vector2(x, y);
     }
-    
+    public void setNetworkHealth(float health) {
+
+        this.health.setHealth(health);
+
+        if (health <= 0f) {
+            this.isDead = true;
+        } else {
+            this.isDead = false;
+        }
+    }
         // 
     public void restorePreviousX() {
         this.x = previousX;
@@ -226,8 +219,6 @@ public class Player extends Entity{
 
         //
     private void updateTransform() {
-        ship.setCenter(x, y);
-        ship.setRotation(rotation);
         hitbox.update(x, y, rotation);
     }
     
@@ -240,6 +231,20 @@ public class Player extends Entity{
         //
     public boolean wantsToShoot(){
         return input.shoot;
+    }
+    
+    
+    public void setNetworkState(
+    float x,
+    float y,
+    float rotation
+    ) {
+
+        this.x = x;
+        this.y = y;
+        this.rotation = rotation;
+
+        updateTransform();
     }
     
     // UPDATE / RENDER / DISPOSE
@@ -255,28 +260,37 @@ public class Player extends Entity{
         handleMovement(delta);
         //handleAnimation();
 
-        /*ship.setRotation(rotation);
-        ship.setCenter(x, y);
-
         //ship.setRegion(animator.getFrame());
-        hitbox.update(this.x, this.y, rotation);*/
         updateTransform();
     }
     public void updateHitbox(){
         hitbox.update(x, y, rotation);
     }
-    @Override
-    public void render(SpriteBatch batch) {
-        ship.draw(batch);
-    }
     public void debugRender(ShapeRenderer shapeRenderer){
         hitbox.debugRender(shapeRenderer);
     }
-    
-    @Override
+    public void applyInput(boolean left, boolean right, boolean forward,
+                        boolean backward, boolean boost, boolean shoot) {
+        input.left = left;
+        input.right = right;
+        input.forward = forward && fuel.hasFuel();
+        input.backward = backward;
+        input.boost = boost && fuel.hasFuel();
+        input.shoot = shoot;
+    }
+
+    /**
+     * Update varijanta za mrezno kontrolisane igrace - NE cita lokalnu tastaturu
+     * (Gdx.input ne postoji/ne vazi za druge igrace), samo primenjuje input
+     * koji je vec postavljen preko applyInput().
+     */
+    public void updateNetworked(float delta) {
+        handleMovement(delta);
+        updateTransform();
+    }
+    /*@Override
     public void dispose() {
-        
-        /*idleAnimation.dispose();
+        idleAnimation.dispose();
         moveAnimation.dispose();
         boostAnimation.dispose();
         if (turnLeftAnimation != idleAnimation) {
@@ -285,6 +299,30 @@ public class Player extends Entity{
         if (turnRightAnimation != idleAnimation && turnRightAnimation != turnLeftAnimation) {
             turnRightAnimation.dispose();
         }
-        attackAnimation.dispose();*/
-    }
+        attackAnimation.dispose();
+    }*/
 }
+
+
+/*
+hitbox = new CompoundHitbox();
+
+        // CENTAR
+        hitbox.addBox(-2.5f, 0, 18.75f, 6.25f);
+
+        // FRONT
+        hitbox.addBox(9.5f, 0, 6.25f, 3.5f);
+
+        // LEFT WING
+        hitbox.addBox(-5f, 7, 3.75f, 10.5f);
+
+        // RIGHT WING
+        hitbox.addBox(-5f, -7, 3.75f, 10.5f);
+
+        // LEFT ENGINE
+        hitbox.addBox(-7.5f, 4.5f, 10, 2.5f);
+
+        // RIGHT ENGINE
+        hitbox.addBox(-7.5f, -4.5f, 10, 2.5f);
+
+*/

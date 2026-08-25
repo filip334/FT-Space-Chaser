@@ -1,7 +1,5 @@
 package io.github.filip334.spacechaser.entity;
 
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -17,21 +15,27 @@ public class Enemy extends Entity{
     private final StateMachine stateMachine;
     private PathFinder pathFinder;
 
-    //
-    
-    protected float velocityX, velocityY;
-    protected float speed = 120f;
-    
-    private float previousX;
-    private float previousY;
-
     // ---------------- CONSTRUCTOR ----------------
+
+    public Enemy() {
+        stateMachine = new StateMachine();
+        
+        stateMachine.changeState(
+            this,
+            createPatrolState()
+        );
+    }
+    
+    
     
     public Enemy(float x, float y) {
         //collisionType = CollisionType.ENEMY;
 
         this.x = x;
         this.y = y;
+        
+        this.maxSpeed = 120f;
+        this.acceleration = 120f;
         
         this.width = 96;
         this.height = 96;
@@ -40,7 +44,6 @@ public class Enemy extends Entity{
         hitbox.addBox(0, 0, width/2+10, 20);
 
         // TEXTURE DEF
-        entityTexture = new Texture("Original/projectile.png");
         
         stateMachine = new StateMachine();
         
@@ -130,7 +133,7 @@ public class Enemy extends Entity{
         return player.getPosition();
     }
     public float getSpeed() {
-        return speed;
+        return acceleration;
     }
     
     public void moveTowards(Vector2 target, float delta) {
@@ -148,8 +151,8 @@ public class Enemy extends Entity{
 
         direction.nor();
 
-        velocityX = direction.x * speed;
-        velocityY = direction.y * speed;
+        velocityX = direction.x * acceleration;
+        velocityY = direction.y * acceleration;
 
         previousX = x;
         previousY = y;
@@ -218,28 +221,13 @@ public class Enemy extends Entity{
         updateHitbox();
     }*/
 
-    @Override
-    public void render(SpriteBatch batch) {
-        batch.draw(
-            entityTexture,
-            x - width / 2f,
-            y - height / 2f,
-            width / 2f,
-            height / 2f,
-            width,
-            height,
-            1f,
-            1f,
-            rotation,
-            0,
-            0,
-            entityTexture.getWidth(),
-            entityTexture.getHeight(),
-            false,
-            false
-        );
-    }
     public void debugRender(ShapeRenderer shapeRenderer){
         hitbox.debugRender(shapeRenderer);
+    }
+    public void setNetworkState(float x, float y, float rotation) {
+        this.x = x;
+        this.y = y;
+        this.rotation = rotation;
+        updateHitbox();
     }
 }

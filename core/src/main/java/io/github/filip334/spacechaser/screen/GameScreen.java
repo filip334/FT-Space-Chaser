@@ -1,60 +1,116 @@
 package io.github.filip334.spacechaser.screen;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
+import io.github.filip334.spacechaser.server.PlayerInputMessage;
 import io.github.filip334.spacechaser.world.GameWorld;
+import io.github.filip334.spacechaser.world.MultiplayerClient;
+import io.github.filip334.spacechaser.world.MultiplayerGameWorld;
 
-public class GameScreen implements Screen{
-    
-    //
-    Game game;
+public class GameScreen implements Screen {
 
-    //
+    private final Game game;
+    private final SpriteBatch batch;
+
+    // SINGLEPLAYER
+    private GameWorld world;
+
+    // MULTIPLAYER
+    private MultiplayerClient multiplayerClient;
+    private MultiplayerGameWorld multiplayerWorld;
+
     public GameScreen(Game game) {
         this.game = game;
         batch = new SpriteBatch();
         world = new GameWorld(game);
     }
-   
-    //
-    private GameWorld world;
-    private SpriteBatch batch;
 
-    
+    public GameScreen(Game game, MultiplayerClient multiplayerClient) {
+        this.game = game;
+        this.multiplayerClient = multiplayerClient;
+        batch = new SpriteBatch();
+
+        Texture playerTexture = new Texture("Original/ship (1).png");
+        Texture enemyTexture = new Texture("Original/projectile.png");
+        Texture bulletTexture = new Texture("Original/bullet.png");
+
+        multiplayerWorld = new MultiplayerGameWorld(playerTexture, enemyTexture, bulletTexture);
+        multiplayerClient.setWorld(multiplayerWorld);
+    }
+
     // ---------------- RENDER ----------------
-    
+
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0, 0, 0, 1);
-        
+
+        if (multiplayerClient != null) {
+            renderMultiplayer(delta);
+        } else {
+            renderSingleplayer(delta);
+        }
+    }
+
+    private void renderSingleplayer(float delta) {
         world.update(delta);
+        batch.begin();
+        world.render(batch);
+        batch.end();
+        world.renderShapes();
+        world.renderHitboxes();
+        world.renderHud(batch);
+    }
+
+    private void renderMultiplayer(float delta) {
+        sendLocalInput();
 
         batch.begin();
-            world.render(batch);
+        multiplayerWorld.render(batch);
         batch.end();
-            world.renderShapes();
-            world.renderHitboxes();
-            world.renderHud(batch);
+
+        multiplayerWorld.renderShapes();
     }
-    
+
+    /**
+     * Cita lokalnu tastaturu i salje input serveru - server je autoritativan,
+     * ovaj klijent NE simulira sopstveno kretanje, samo prikazuje ono sto
+     * server vrati kroz snapshot (jednostavno, bez client-side prediction za sad).
+     */
+    private void sendLocalInput() {
+        PlayerInputMessage input = new PlayerInputMessage();
+        input.left = Gdx.input.isKeyPressed(Input.Keys.A);
+        input.right = Gdx.input.isKeyPressed(Input.Keys.D);
+        input.forward = Gdx.input.isKeyPressed(Input.Keys.W);
+        input.backward = Gdx.input.isKeyPressed(Input.Keys.S);
+        input.boost = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT);
+        input.shoot = Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
+
+        multiplayerClient.sendInput(input);
+    }
+
     // ---------------- DISPOSE ----------------
-    
+
     @Override
     public void dispose() {
-        world.dispose();
+        if (world != null) world.dispose();
+        if (multiplayerWorld != null) multiplayerWorld.dispose();
+        if (multiplayerClient != null) multiplayerClient.disconnect();
         batch.dispose();
     }
 
     // ---------------- ABSTRAKTNE ----------------
-    
+
     @Override
     public void show() {
     }
 
     @Override
-    public void resize(int i, int i1) {
+    public void resize(int width, int height) {
     }
 
     @Override
