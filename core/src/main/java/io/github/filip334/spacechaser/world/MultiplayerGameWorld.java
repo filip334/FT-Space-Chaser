@@ -34,9 +34,20 @@ public class MultiplayerGameWorld {
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
 
     private volatile int localPlayerId = -1;
+    private volatile int score = 0;
+    private volatile float gameTime = 0f;
+    private volatile boolean matchOver = false;
 
-    public MultiplayerGameWorld(Texture playerTexture, Texture enemyTexture, Texture bulletTexture) {
-        entityRenderer = new EntityRenderer(playerTexture, enemyTexture, bulletTexture);
+    public MultiplayerGameWorld(Texture playerIdleTexture, Texture playerThrustSheet, Texture flameSheet,
+                                 Texture enemyTexture, Texture bulletTexture) {
+        entityRenderer = new EntityRenderer(playerIdleTexture, playerThrustSheet, flameSheet, enemyTexture, bulletTexture);
+    }
+
+    /**
+     * Poziva se jednom po frejmu iz GameScreen-a da animacija odmice.
+     */
+    public void update(float delta) {
+        entityRenderer.update(delta);
     }
 
     public void setLocalPlayerId(int id) {
@@ -52,6 +63,10 @@ public class MultiplayerGameWorld {
         syncEnemies(snapshot);
         syncBullets(snapshot);
         syncWalls(snapshot);
+
+        this.score = snapshot.score;
+        this.gameTime = snapshot.gameTime;
+        this.matchOver = snapshot.matchOver;
     }
 
     private void syncPlayers(GameStateSnapshot snapshot) {
@@ -67,6 +82,9 @@ public class MultiplayerGameWorld {
             }
             p.setNetworkState(state.x, state.y, state.rotation);
             p.setNetworkHealth(state.health);
+            p.setNetworkFuel(state.fuel);
+            p.setNetworkThrusting(state.thrusting);
+            p.setNetworkBoosting(state.boosting);
         }
 
         players.keySet().retainAll(ids);
@@ -106,10 +124,6 @@ public class MultiplayerGameWorld {
         bullets.keySet().retainAll(ids);
     }
 
-    /**
-     * Zidovi se nikad ne pomeraju - dovoljno ih je napraviti jednom po ID-ju
-     * i vise ih ne diramo, samo ih zadrzimo dok god server salje taj ID.
-     */
     private void syncWalls(GameStateSnapshot snapshot) {
         Set<Integer> ids = new HashSet<>();
 
@@ -136,9 +150,6 @@ public class MultiplayerGameWorld {
         }
     }
 
-    /**
-     * Poziva se van SpriteBatch.begin()/end() bloka, isto kao GameWorld.renderShapes().
-     */
     public synchronized void renderShapes() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (Wall w : walls.values()) {
@@ -157,6 +168,35 @@ public class MultiplayerGameWorld {
 
     public synchronized Collection<Bullet> getBullets() {
         return bullets.values();
+    }
+
+    public synchronized Player getLocalPlayer() {
+        return players.get(localPlayerId);
+    }
+
+    /**
+     * Vraca prvog igraca koji nije lokalni. Za sad dovoljno za 1v1 HUD;
+     * kad podrzimo vise od 2 igraca, HUD ce trebati da prikaze listu.
+     */
+    public synchronized Player getOpponentPlayer() {
+        for (Map.Entry<Integer, Player> entry : players.entrySet()) {
+            if (entry.getKey() != localPlayerId) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public float getGameTime() {
+        return gameTime;
+    }
+
+    public boolean isMatchOver() {
+        return matchOver;
     }
 
     public void dispose() {

@@ -19,4 +19,8 @@ public class EntityState implements Serializable {
     public float maxHealth;
     public float fuel;
     public float maxFuel;
+
+    // da li igrac trenutno pritiska napred (za thrust animaciju na oba klijenta)
+    public boolean thrusting;
+    public boolean boosting;
 }

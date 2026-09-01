@@ -41,4 +41,8 @@ public class FuelComponent {
     public boolean hasFuel(){
         return fuel>0;
     }
+    
+    public void setFuel(float amount){
+        this.fuel = amount;
+    }
 }

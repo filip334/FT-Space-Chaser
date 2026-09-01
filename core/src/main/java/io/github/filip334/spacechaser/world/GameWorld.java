@@ -1,7 +1,6 @@
 package io.github.filip334.spacechaser.world;
 
 import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -74,11 +73,13 @@ public class GameWorld {
     public GameWorld(Game game) {
         this.game = game;
 
-        Texture playerTexture = new Texture("Original/ship (1).png");
-        Texture enemyTexture = new Texture("Original/projectile.png");
+        Texture playerIdleTexture = new Texture("Original/ship.png");
+        Texture playerThrustSheet = new Texture("Original/shipMove.png");
+        Texture flameSheet = new Texture("Original/moveFire.png");
+        Texture enemyTexture = new Texture("Original/rocket.png");
         Texture bulletTexture = new Texture("Original/bullet.png");
 
-        entityRenderer = new EntityRenderer(playerTexture, enemyTexture, bulletTexture);
+        entityRenderer = new EntityRenderer(playerIdleTexture, playerThrustSheet, flameSheet, enemyTexture, bulletTexture);
         shapeRenderer = new ShapeRenderer();
         hudRenderer = new HudRenderer();
 
@@ -94,6 +95,10 @@ public class GameWorld {
 
         gameTime += delta;
         encounterField.update();
+
+        if (entityRenderer != null) {
+            entityRenderer.update(delta);
+        }
 
         updatePlayers(delta);
         updateEnemies(delta);
@@ -165,6 +170,14 @@ public class GameWorld {
         return true;
     }
 
+    /**
+     * Mec je gotov kad su SVI konektovani igraci mrtvi.
+     * Prazna mapa (niko jos nije spawn-ovan) se NE racuna kao gotov mec.
+     */
+    public boolean isMatchOver() {
+        return !players.isEmpty() && allPlayersDead();
+    }
+
     // ---------------- GAME OVER ----------------
 
     private void handleGameOver() {
@@ -202,9 +215,9 @@ public class GameWorld {
         if (shapeRenderer == null) return;
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        for (Player p : players.values()) p.debugRender(shapeRenderer);
-        for (Enemy e : enemies) e.debugRender(shapeRenderer);
-        for (Bullet b : bullets) b.debugRender(shapeRenderer);
+        for (Player p : players.values()) p.hitBoxDebugRenderer(shapeRenderer);
+        for (Enemy e : enemies) e.hitBoxDebugRenderer(shapeRenderer);
+        for (Bullet b : bullets) b.hitBoxDebugRenderer(shapeRenderer);
         shapeRenderer.end();
     }
 
@@ -221,9 +234,15 @@ public class GameWorld {
     // ---------------- SPAWN ----------------
 
     private void spawnEnemyWave() {
+        float margin = 80f;
+        float minX = encounterField.getFieldX() + margin;
+        float maxX = encounterField.getFieldX() + encounterField.getFieldWidth() - margin;
+        float minY = encounterField.getFieldY() + margin;
+        float maxY = encounterField.getFieldY() + encounterField.getFieldHeight() - margin;
+
         for (int i = 0; i < ENEMY_WAVE_SIZE; i++) {
-            float x = MathUtils.random(80f, Gdx.graphics.getWidth() - 80f);
-            float y = MathUtils.random(80f, Gdx.graphics.getHeight() - 80f);
+            float x = MathUtils.random(minX, maxX);
+            float y = MathUtils.random(minY, maxY);
             enemies.add(new Enemy(x, y));
         }
     }
@@ -252,6 +271,7 @@ public class GameWorld {
         }
 
         for (Player p : players.values()) {
+            if (p.isDead()) continue;
             if (!p.wantsToShoot()) continue;
             if (shootCooldown > 0f) continue;
 
@@ -289,8 +309,14 @@ public class GameWorld {
     public void spawnPlayer(int playerId) {
         if (players.containsKey(playerId)) return;
 
-        float x = MathUtils.random(80f, Gdx.graphics.getWidth() - 80f);
-        float y = MathUtils.random(80f, Gdx.graphics.getHeight() - 80f);
+        float margin = 80f;
+        float minX = encounterField.getFieldX() + margin;
+        float maxX = encounterField.getFieldX() + encounterField.getFieldWidth() - margin;
+        float minY = encounterField.getFieldY() + margin;
+        float maxY = encounterField.getFieldY() + encounterField.getFieldHeight() - margin;
+
+        float x = MathUtils.random(minX, maxX);
+        float y = MathUtils.random(minY, maxY);
 
         players.put(playerId, new Player(x, y));
     }
@@ -321,5 +347,13 @@ public class GameWorld {
 
     public Array<Wall> getWalls() {
         return encounterField.getWalls();
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public float getGameTime() {
+        return gameTime;
     }
 }

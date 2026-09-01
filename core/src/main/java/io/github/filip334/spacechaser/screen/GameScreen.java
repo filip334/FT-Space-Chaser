@@ -7,6 +7,8 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
+import io.github.filip334.spacechaser.entity.Player;
+import io.github.filip334.spacechaser.renderer.HudRenderer;
 import io.github.filip334.spacechaser.server.PlayerInputMessage;
 import io.github.filip334.spacechaser.world.GameWorld;
 import io.github.filip334.spacechaser.world.MultiplayerClient;
@@ -23,6 +25,7 @@ public class GameScreen implements Screen {
     // MULTIPLAYER
     private MultiplayerClient multiplayerClient;
     private MultiplayerGameWorld multiplayerWorld;
+    private HudRenderer hudRenderer;
 
     public GameScreen(Game game) {
         this.game = game;
@@ -35,12 +38,16 @@ public class GameScreen implements Screen {
         this.multiplayerClient = multiplayerClient;
         batch = new SpriteBatch();
 
-        Texture playerTexture = new Texture("Original/ship (1).png");
-        Texture enemyTexture = new Texture("Original/projectile.png");
+        Texture playerIdleTexture = new Texture("Original/ship.png");
+        Texture playerThrustSheet = new Texture("Original/shipMove.png");
+        Texture flameSheet = new Texture("Original/moveFire.png");
+        Texture enemyTexture = new Texture("Original/rocket.png");
         Texture bulletTexture = new Texture("Original/bullet.png");
 
-        multiplayerWorld = new MultiplayerGameWorld(playerTexture, enemyTexture, bulletTexture);
+        multiplayerWorld = new MultiplayerGameWorld(playerIdleTexture, playerThrustSheet, flameSheet, enemyTexture, bulletTexture);
         multiplayerClient.setWorld(multiplayerWorld);
+
+        hudRenderer = new HudRenderer();
     }
 
     // ---------------- RENDER ----------------
@@ -67,13 +74,50 @@ public class GameScreen implements Screen {
     }
 
     private void renderMultiplayer(float delta) {
+        if (multiplayerWorld.isMatchOver()) {
+            returnToMainMenu();
+            return;
+        }
+
         sendLocalInput();
+
+        multiplayerWorld.update(delta);
 
         batch.begin();
         multiplayerWorld.render(batch);
         batch.end();
 
         multiplayerWorld.renderShapes();
+
+        renderMultiplayerHud();
+    }
+
+    private void returnToMainMenu() {
+        if (multiplayerClient != null) multiplayerClient.disconnect();
+        dispose();
+        game.setScreen(new MainMenuScreen(game));
+    }
+
+    private void renderMultiplayerHud() {
+        Player local = multiplayerWorld.getLocalPlayer();
+        Player opponent = multiplayerWorld.getOpponentPlayer();
+
+        float localHealth = local != null ? local.getHealth() : 0f;
+        float localMaxHealth = local != null ? local.getMaxHealth() : 1f;
+        float localFuel = local != null ? local.getFuel() : 0f;
+        float localMaxFuel = local != null ? local.getMaxFuel() : 1f;
+
+        boolean opponentPresent = opponent != null;
+        float opponentHealth = opponentPresent ? opponent.getHealth() : 0f;
+        float opponentMaxHealth = opponentPresent ? opponent.getMaxHealth() : 1f;
+        float opponentFuel = opponentPresent ? opponent.getFuel() : 0f;
+        float opponentMaxFuel = opponentPresent ? opponent.getMaxFuel() : 1f;
+
+        hudRenderer.renderMultiplayer(batch,
+                localHealth, localMaxHealth, localFuel, localMaxFuel,
+                opponentHealth, opponentMaxHealth, opponentFuel, opponentMaxFuel,
+                opponentPresent,
+                multiplayerWorld.getScore(), multiplayerWorld.getGameTime());
     }
 
     /**
@@ -100,6 +144,7 @@ public class GameScreen implements Screen {
         if (world != null) world.dispose();
         if (multiplayerWorld != null) multiplayerWorld.dispose();
         if (multiplayerClient != null) multiplayerClient.disconnect();
+        if (hudRenderer != null) hudRenderer.dispose();
         batch.dispose();
     }
 

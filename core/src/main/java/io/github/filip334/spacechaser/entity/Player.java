@@ -1,25 +1,21 @@
 package io.github.filip334.spacechaser.entity;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
 import io.github.filip334.spacechaser.component.FuelComponent;
 import io.github.filip334.spacechaser.component.HealthComponent;
-import io.github.filip334.spacechaser.input.PlayerInput;
+import io.github.filip334.spacechaser.input.InputManager;
+import io.github.filip334.spacechaser.world.GameSettings;
 
 public class Player extends Entity{
     
     // INPUT 
-    PlayerInput input = new PlayerInput();
+    //PlayerInput input = new PlayerInput();
+    InputManager input = new InputManager(new GameSettings());
     
     //
     FuelComponent fuel;
     
-    //
-    //private Texture idleAnimation;
 
     // ---------------- CONSTRUCTOR ----------------
     
@@ -38,11 +34,6 @@ public class Player extends Entity{
         this.health = new HealthComponent(100);
         fuel = new FuelComponent(100);
         
-        String texturePath = "Original/";
-        String idlePath = texturePath + "ship.png";
-        
-        //idleAnimation = new Texture(idlePath);
-        
         width = 128;
         height = 128;
         
@@ -50,7 +41,7 @@ public class Player extends Entity{
     }
     
     // INPUT MOVEMENT
-    private void readInput() {
+    /*private void readInput() {
 
         input.left = Gdx.input.isKeyPressed(Input.Keys.A);
         input.right = Gdx.input.isKeyPressed(Input.Keys.D);
@@ -59,25 +50,24 @@ public class Player extends Entity{
         input.boost = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && fuel.hasFuel();
         input.shoot = Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
         
-    }
+    }*/
     private void handleMovement(float delta) {
 
         previousX = x;
         previousY = y;
         previousRotation = rotation;
         
-        boolean isBoosting = input.boost && input.forward;
-        float currentAcceleration = isBoosting ? boostAcceleration : acceleration;
+        float currentAcceleration = input.boosting() ? boostAcceleration : acceleration;
 
-        if (isBoosting) {
+        if (input.moveForward() && input.boosting()) {
             fuel.consume(20f * delta);
         }
 
-        if (input.left) {
+        if (input.moveLeft()) {
             rotation += rotationSpeed * delta;
         }
 
-        if (input.right) {
+        if (input.moveRight()) {
             rotation -= rotationSpeed * delta;
         }
 
@@ -86,12 +76,12 @@ public class Player extends Entity{
         float dirX = (float) Math.cos(rad);
         float dirY = (float) Math.sin(rad);
 
-        if (input.forward) {
+        if (input.moveForward()) {
             velocityX += dirX * currentAcceleration * delta;
             velocityY += dirY * currentAcceleration * delta;
         }
 
-        if (input.backward) {
+        if (input.moveBackward()) {
             velocityX -= dirX * acceleration * 0.6f * delta;
             velocityY -= dirY * acceleration * 0.6f * delta;
         }
@@ -107,14 +97,6 @@ public class Player extends Entity{
             float scale = maxSpeed / speed;
             velocityX *= scale;
             velocityY *= scale;
-        }
-    }
-    
-    // DEMAGE
-    public void takeDamage(float damage){
-        health.damage(damage);
-        if(health.isDead()){
-            this.isDead = true;
         }
     }
     
@@ -147,40 +129,6 @@ public class Player extends Entity{
     public float getMaxHealth(){
         return health.getMaxHealth();
     }
-    public float getHealth(){
-        return health.getHealth();
-    }
-    
-        // FUEL
-    public float getMaxFuel(){
-        return fuel.getMaxFuel();
-    }
-    public float getFuel(){
-        return fuel.getFuel();
-    }
-    
-    public float getVelocityX() {
-    return velocityX;
-    }
-
-    public float getVelocityY() {
-        return velocityY;
-    }
-
-    public void setVelocityX(float velocityX) {
-        this.velocityX = velocityX;
-    }
-
-    public void setVelocityY(float velocityY) {
-        this.velocityY = velocityY;
-    }
-    public void setVelocity(float velocityX, float velocityY) {
-        this.velocityX = velocityX;
-        this.velocityY = velocityY;
-    }
-    public Vector2 getPosition() {
-        return new Vector2(x, y);
-    }
     public void setNetworkHealth(float health) {
 
         this.health.setHealth(health);
@@ -191,7 +139,41 @@ public class Player extends Entity{
             this.isDead = false;
         }
     }
-        // 
+        // FUEL
+    public float getMaxFuel(){
+        return fuel.getMaxFuel();
+    }
+    public float getFuel(){
+        return fuel.getFuel();
+    }
+    public void setNetworkFuel(float fuel) {
+        this.fuel.setFuel(fuel);
+    }
+    
+        // VELOCITY
+    public float getVelocityX() {
+        return velocityX;
+    }
+    public float getVelocityY() {
+        return velocityY;
+    }
+    public void setVelocityX(float velocityX) {
+        this.velocityX = velocityX;
+    }
+    public void setVelocityY(float velocityY) {
+        this.velocityY = velocityY;
+    }
+    public void setVelocity(float velocityX, float velocityY) {
+        this.velocityX = velocityX;
+        this.velocityY = velocityY;
+    }
+    
+        // POSITION
+    public Vector2 getPosition() {
+        return new Vector2(x, y);
+    }
+    
+        // RESTORE
     public void restorePreviousX() {
         this.x = previousX;
         updateTransform();
@@ -228,49 +210,49 @@ public class Player extends Entity{
         previousRotation = rotation;
     }
     
-        //
+        // INPUT
     public boolean wantsToShoot(){
-        return input.shoot;
+        return input.shoot();
     }
-    
-    
-    public void setNetworkState(
-    float x,
-    float y,
-    float rotation
-    ) {
-
+    public boolean isBoosting() {
+        return input.boosting() && input.moveForward();
+    }
+    public boolean isThrusting() {
+        return input.moveForward();
+    }
+    public void setNetworkBoosting(boolean boosting) {
+        input.boost = boosting;
+    }
+    public void setNetworkThrusting(boolean thrusting) {
+        input.forward = thrusting;
+    }
+    public void setNetworkState(float x,float y,float rotation){
         this.x = x;
         this.y = y;
         this.rotation = rotation;
 
         updateTransform();
     }
+    /**
+     * Za mrezno ogledalo (MultiplayerGameWorld) - server salje da li je
+     * igrac trenutno pod thrust-om, klijent to primenjuje da bi animacija
+     * i za protivnika (i za sopstveni brod u multiplayeru) radila ispravno.
+     */
+    
     
     // UPDATE / RENDER / DISPOSE
     
     @Override
     public void update(float delta) {
-        // UPDATE INPUT
-        readInput();
-            
-        // UPDATE ANIMATION SYSTEM
-        //animator.update(delta);
+        if (isDead) {
+            return; // eliminisan - vise se ne krece niti reaguje na input
+        }
 
         handleMovement(delta);
-        //handleAnimation();
-
-        //ship.setRegion(animator.getFrame());
         updateTransform();
     }
-    public void updateHitbox(){
-        hitbox.update(x, y, rotation);
-    }
-    public void debugRender(ShapeRenderer shapeRenderer){
-        hitbox.debugRender(shapeRenderer);
-    }
-    public void applyInput(boolean left, boolean right, boolean forward,
-                        boolean backward, boolean boost, boolean shoot) {
+    
+    public void applyInput(boolean left, boolean right, boolean forward, boolean backward, boolean boost, boolean shoot) {
         input.left = left;
         input.right = right;
         input.forward = forward && fuel.hasFuel();
@@ -278,29 +260,20 @@ public class Player extends Entity{
         input.boost = boost && fuel.hasFuel();
         input.shoot = shoot;
     }
-
     /**
      * Update varijanta za mrezno kontrolisane igrace - NE cita lokalnu tastaturu
      * (Gdx.input ne postoji/ne vazi za druge igrace), samo primenjuje input
      * koji je vec postavljen preko applyInput().
      */
     public void updateNetworked(float delta) {
+        if (isDead) {
+            return; // eliminisan - vise se ne krece niti reaguje na input
+        }
         handleMovement(delta);
         updateTransform();
     }
-    /*@Override
-    public void dispose() {
-        idleAnimation.dispose();
-        moveAnimation.dispose();
-        boostAnimation.dispose();
-        if (turnLeftAnimation != idleAnimation) {
-            turnLeftAnimation.dispose();
-        }
-        if (turnRightAnimation != idleAnimation && turnRightAnimation != turnLeftAnimation) {
-            turnRightAnimation.dispose();
-        }
-        attackAnimation.dispose();
-    }*/
+    
+    
 }
 
 

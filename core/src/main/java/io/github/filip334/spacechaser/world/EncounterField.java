@@ -1,20 +1,20 @@
 package io.github.filip334.spacechaser.world;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Array;
 import io.github.filip334.spacechaser.entity.Wall;
 
 public class EncounterField {
-    
+
     //
-    private static final int GRID_COLS = 10;
-    private static final int GRID_ROWS = 10;
+    private static final int GRID_COLS = 16;
+    private static final int GRID_ROWS = 16;
 
     private static final float WALL_THICKNESS = 6f;
     private static final float MAP_PADDING = 12f;
-    private static final float CELL_SIZE = 70f;
-    // 
+    private static final float CELL_SIZE = 60f;
+    private static final float POST_SIZE = 18f;
+    //
     private Array<Wall> walls;
 
     //
@@ -24,8 +24,6 @@ public class EncounterField {
     private float fieldY;
     private float fieldWidth;
     private float fieldHeight;
-    private int screenWidth;
-    private int screenHeight;
 
     public EncounterField() {
         walls = new Array<>();
@@ -33,8 +31,8 @@ public class EncounterField {
     }
 
     private void generateStaticMap() {
-        screenWidth = Gdx.graphics.getWidth();
-        screenHeight = Gdx.graphics.getHeight();
+        // Mapa je fiksne velicine, NE zavisi od velicine prozora -
+        // isto na svakom klijentu i na serveru, bez obzira na rezoluciju.
         fieldX = MAP_PADDING;
         fieldY = MAP_PADDING;
         fieldWidth = GRID_COLS * CELL_SIZE;
@@ -45,62 +43,61 @@ public class EncounterField {
 
         walls.clear();
 
-        addHorizontalWall(0, 10, 0);
-        addHorizontalWall(0, 10, 10);
-        addVerticalWall(0, 10, 0);
-        addVerticalWall(0, 10, 10);
+        // Spoljna granica cele mape
+        addHorizontalWall(0, GRID_COLS, 0);
+        addHorizontalWall(0, GRID_COLS, GRID_ROWS);
+        addVerticalWall(0, GRID_ROWS, 0);
+        addVerticalWall(0, GRID_ROWS, GRID_COLS);
 
-        // Svaki poziv dodaje i odraz oko vertikalne i horizontalne ose mape.
-        // Cetiri kratka, simetricna ostrva. Izmedju njih je sirok centralni
-        // prolaz, a svaki spoljasnji prolaz je dovoljno sirok za rotaciju broda.
-        
-        /*//dole levo
-        addHorizontalWall(1, 5, 1);
-        addVerticalWall(1, 5, 1);
-        
-        //gore levo
-        addVerticalWall(6, 9, 1);
-        addHorizontalWall(1, 5, 9);
-        
-        //dole levo
-        addHorizontalWall(3, 5, 3);
-        addVerticalWall(3, 5, 3);
-        
-        //gore levo
-        addVerticalWall(6, 8, 3);
-        addHorizontalWall(3, 5, 8);
-        
-        //centar levo
-        addVerticalWall(4, 7, 4);
-        
-        //centar desno
-        addVerticalWall(4, 5, 5);
-        addVerticalWall(6, 7, 5);
-        
-        //DESNA
-        
-        //dole desno
-        addHorizontalWall(6, 9, 1);
-        addVerticalWall(1, 5, 9);
-        
-        //gore desno
-        addVerticalWall(6, 9, 9);
-        addHorizontalWall(6, 9, 9);
-        
-        //dole desno
-        addHorizontalWall(6, 8, 3);
-        addVerticalWall(3, 5, 8);
-        
-        //gore desno
-        addVerticalWall(6, 8, 8);
-        addHorizontalWall(6, 8, 8);
-        
-        //centar desno
-        addVerticalWall(4, 7, 7);
-        
-        //centar levo
-        addVerticalWall(4, 5, 6);
-        addVerticalWall(6, 7, 6);*/
+        // Spoljni prsten - prolaz na sredini svake strane (kao original)
+        buildRingWithGaps(3, GRID_COLS - 3, 3, GRID_ROWS - 3, 2f);
+
+        // Unutrasnji prsten - manji, blize centru
+        buildRingWithGaps(6, GRID_COLS - 6, 6, GRID_ROWS - 6, 1.5f);
+
+        // Mali "postovi" na uglovima oba prstena - stilski akcenat kao na originalu
+        addCornerPosts(3, GRID_COLS - 3, 3, GRID_ROWS - 3);
+        addCornerPosts(6, GRID_COLS - 6, 6, GRID_ROWS - 6);
+    }
+
+    /**
+     * Gradi kvadratni prsten od (minCol,minRow) do (maxCol,maxRow) sa prolazom
+     * sirine gapSize na sredini svake od 4 strane, da brod moze da prelazi
+     * izmedju prstenova - isto kao original.
+     */
+    private void buildRingWithGaps(float minCol, float maxCol, float minRow, float maxRow, float gapSize) {
+        float midCol = (minCol + maxCol) / 2f;
+        float midRow = (minRow + maxRow) / 2f;
+
+        float gapStartCol = midCol - gapSize / 2f;
+        float gapEndCol = midCol + gapSize / 2f;
+        float gapStartRow = midRow - gapSize / 2f;
+        float gapEndRow = midRow + gapSize / 2f;
+
+        // Gornja i donja strana (sa prolazom u sredini)
+        addHorizontalWall(minCol, gapStartCol, minRow);
+        addHorizontalWall(gapEndCol, maxCol, minRow);
+        addHorizontalWall(minCol, gapStartCol, maxRow);
+        addHorizontalWall(gapEndCol, maxCol, maxRow);
+
+        // Leva i desna strana (sa prolazom u sredini)
+        addVerticalWall(minRow, gapStartRow, minCol);
+        addVerticalWall(gapEndRow, maxRow, minCol);
+        addVerticalWall(minRow, gapStartRow, maxCol);
+        addVerticalWall(gapEndRow, maxRow, maxCol);
+    }
+
+    private void addCornerPosts(float minCol, float maxCol, float minRow, float maxRow) {
+        addPost(minCol, minRow);
+        addPost(maxCol, minRow);
+        addPost(minCol, maxRow);
+        addPost(maxCol, maxRow);
+    }
+
+    private void addPost(float col, float row) {
+        float x = fieldX + col * cellWidth - POST_SIZE / 2f;
+        float y = fieldY + row * cellHeight - POST_SIZE / 2f;
+        walls.add(new Wall(x, y, POST_SIZE, POST_SIZE));
     }
 
     private void addHorizontalWall(float startCol, float endCol, float row) {
@@ -119,36 +116,41 @@ public class EncounterField {
         walls.add(new Wall(x, y, WALL_THICKNESS, height));
     }
 
-    private void addMirroredHorizontal(float startCol, float endCol, float row) {
-        addHorizontalWall(startCol, endCol, row);
-        addHorizontalWall(GRID_COLS - endCol, GRID_COLS - startCol, row);
-        addHorizontalWall(startCol, endCol, GRID_ROWS - row);
-        addHorizontalWall(GRID_COLS - endCol, GRID_COLS - startCol, GRID_ROWS - row);
-    }
-
-    private void addMirroredVertical(float col, float startRow, float endRow) {
-        addVerticalWall(col, startRow, endRow);
-        addVerticalWall(GRID_COLS - col, startRow, endRow);
-        addVerticalWall(col, GRID_ROWS - endRow, GRID_ROWS - startRow);
-        addVerticalWall(GRID_COLS - col, GRID_ROWS - endRow, GRID_ROWS - startRow);
-    }
-
     // ---------------- GET/SET ----------------
-    
+
     public Array<Wall> getWalls() {
         return walls;
     }
 
+    /**
+     * Granice igrivog polja mape - koristi OVO za spawn pozicije
+     * (enemy, player), nikad Gdx.graphics.getWidth()/getHeight().
+     */
+    public float getFieldX() {
+        return fieldX;
+    }
+
+    public float getFieldY() {
+        return fieldY;
+    }
+
+    public float getFieldWidth() {
+        return fieldWidth;
+    }
+
+    public float getFieldHeight() {
+        return fieldHeight;
+    }
+
     // ---------------- UPDATE ----------------
-    
+
     public void update() {
-        if (screenWidth != Gdx.graphics.getWidth() || screenHeight != Gdx.graphics.getHeight()) {
-            generateStaticMap();
-        }
+        // Mapa je staticna i ne zavisi od velicine prozora - nema potrebe
+        // da se regenerise. Metoda ostaje zbog poziva iz GameWorld.update().
     }
 
     // ---------------- RENDER ----------------
-    
+
     public void render(ShapeRenderer shapeRenderer) {
         for (Wall wall : walls) {
             wall.render(shapeRenderer);

@@ -104,10 +104,6 @@ public class Enemy extends Entity{
         y = previousY;
         updateHitbox();
     }
-
-    private void updateHitbox() {
-        hitbox.update(x, y, rotation);
-    }
     
     //
     public StateMachine getStateMachine() {
@@ -178,22 +174,29 @@ public class Enemy extends Entity{
         return distance < 400f;
     }
 
+    public void setNetworkState(float x, float y, float rotation) {
+        this.x = x;
+        this.y = y;
+        this.rotation = rotation;
+        updateHitbox();
+    }
     
     // UPDATE / RENDER / DISPOSE
     
     @Override
     public void update(float delta) {
         stateMachine.update(this, delta);
-        
         hitbox.update(x, y, rotation);
     }
 
     public void update(float delta,Player player){
         this.player = player;
-        
         update(delta);
     }
-    /*public void update(float delta, Player player) {
+    
+    
+}
+/*public void update(float delta, Player player) {
         
         float targetX = player.getX();
         float targetY = player.getY();
@@ -220,14 +223,3 @@ public class Enemy extends Entity{
 
         updateHitbox();
     }*/
-
-    public void debugRender(ShapeRenderer shapeRenderer){
-        hitbox.debugRender(shapeRenderer);
-    }
-    public void setNetworkState(float x, float y, float rotation) {
-        this.x = x;
-        this.y = y;
-        this.rotation = rotation;
-        updateHitbox();
-    }
-}

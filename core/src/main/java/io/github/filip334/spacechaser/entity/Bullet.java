@@ -59,10 +59,6 @@ public class Bullet extends Entity {
         hitbox.update(x, y, rotation);
     }
 
-    public void debugRender(ShapeRenderer shapeRenderer){
-        hitbox.debugRender(shapeRenderer);
-    }
-    
     public void setNetworkState(float x, float y, float rotation) {
         this.x = x;
         this.y = y;

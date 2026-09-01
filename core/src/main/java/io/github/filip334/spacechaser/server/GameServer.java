@@ -52,6 +52,21 @@ public class GameServer {
         gameLoopThread.start();
     }
 
+    /**
+     * Stvarni port na kome server slusa - kad je konstruktor pozvan sa 0,
+     * OS bira slobodan port, pa se pravi broj saznaje tek posle start().
+     */
+    public int getPort() {
+        if (serverSocket != null && serverSocket.isBound()) {
+            return serverSocket.getLocalPort();
+        }
+        return port;
+    }
+
+    public int getConnectedPlayerCount() {
+        return clients.size();
+    }
+
     public void stop() {
         running = false;
         try {
@@ -147,6 +162,10 @@ public class GameServer {
             s.walls.add(state);
         }
 
+        s.score = world.getScore();
+        s.gameTime = world.getGameTime();
+        s.matchOver = world.isMatchOver();
+
         return s;
     }
 
@@ -160,6 +179,8 @@ public class GameServer {
         s.maxHealth = p.getMaxHealth();
         s.fuel = p.getFuel();
         s.maxFuel = p.getMaxFuel();
+        s.thrusting = p.isThrusting();
+        s.boosting = p.isBoosting();
         return s;
     }
 

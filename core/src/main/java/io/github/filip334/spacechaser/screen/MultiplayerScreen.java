@@ -11,8 +11,6 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
-import io.github.filip334.spacechaser.server.GameServer;
-
 import io.github.filip334.spacechaser.world.MultiplayerClient;
 
 public class MultiplayerScreen implements Screen {
@@ -247,29 +245,32 @@ public class MultiplayerScreen implements Screen {
             switch (i) {
 
                 // =================================================
-                // HOST
+                // HOST - ide na ekran cekanja, koji sam pokrece
+                // GameServer na slobodnom portu i UDP oglasivac
                 // =================================================
 
                 case 0:
 
-                    hostGame();
+                    game.setScreen(new HostGameScreen(game));
 
                     break;
 
 
                 // =================================================
-                // JOIN
+                // JOIN - ide na ekran sa listom otvorenih igara
                 // =================================================
 
                 case 1:
 
-                    joinGame();
+                    game.setScreen(new JoinGameScreen(game));
 
                     break;
 
 
                 // =================================================
-                // SERVER
+                // SERVER - direktna konekcija na dedicated server
+                // (fiksna adresa/port - za kasnije kad server ne
+                // zivi vise unutar klijenta vec zasebno)
                 // =================================================
 
                 case 2:
@@ -291,127 +292,6 @@ public class MultiplayerScreen implements Screen {
 
                     break;
             }
-        }
-    }
-
-    // =========================================================
-    // HOST GAME
-    // =========================================================
-
-    private void hostGame() {
-
-        System.out.println(
-            "Starting host game..."
-        );
-
-        // =====================================================
-        // POKRENI SERVER
-        // =====================================================
-
-        GameServer server =
-            new GameServer(5555);
-
-        Thread serverThread =
-            new Thread(
-                server::start,
-                "GameServer"
-            );
-        
-        
-        serverThread.setDaemon(true);
-
-        serverThread.start();
-
-
-        // =====================================================
-        // SAČEKAJ DA SERVER POČNE
-        // =====================================================
-
-        try {
-
-            Thread.sleep(200);
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-
-            return;
-        }
-
-
-        // =====================================================
-        // POVEŽI HOST KAO PLAYER 1
-        // =====================================================
-
-        MultiplayerClient client =
-            new MultiplayerClient();
-
-        boolean connected =
-            client.connect(
-                "127.0.0.1",
-                5555
-            );
-
-        if (connected) {
-
-            System.out.println(
-                "Host connected as Player 1!"
-            );
-
-            game.setScreen(
-                new GameScreen(
-                    game,
-                    client
-                )
-            );
-
-        } else {
-
-            System.out.println(
-                "Host could not connect to server."
-            );
-
-            server.stop();
-        }
-    }
-
-    // =========================================================
-    // JOIN GAME
-    // =========================================================
-
-    private void joinGame() {
-
-        System.out.println(
-            "Joining game..."
-        );
-
-        MultiplayerClient client =
-            new MultiplayerClient();
-
-        boolean connected =
-            client.connect(
-                "127.0.0.1",
-                5555
-            );
-
-        if (connected) {
-
-            System.out.println(
-                "Joined game!"
-            );
-
-            game.setScreen(
-                new GameScreen(
-                    game,
-                    client
-                )
-            );
-
-        } else {
-
-            System.out.println(
-                "Could not join game."
-            );
         }
     }
 
