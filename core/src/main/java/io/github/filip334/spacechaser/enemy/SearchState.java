@@ -6,7 +6,6 @@ import io.github.filip334.spacechaser.entity.Enemy;
 public class SearchState implements EnemyState {
 
     private final Vector2 searchPosition;
-
     private float timer;
 
     private static final float SEARCH_TIME = 3f;
@@ -17,29 +16,27 @@ public class SearchState implements EnemyState {
 
     @Override
     public void enter(Enemy enemy) {
-
         timer = 0f;
     }
 
     @Override
     public void update(Enemy enemy, float delta) {
-
         if (enemy.canSeePlayer()) {
-
             enemy.getStateMachine().changeState(
                     enemy,
                     new ChaseState()
             );
-
             return;
         }
 
-        enemy.moveTowards(searchPosition, delta);
+        // FIX: moveToTarget() koristi A* fallback kad direktan put ka
+        // poslednjoj poznatoj poziciji igraca nije cist (npr. igrac je
+        // pobegao iza zida) - moveTowards() bi ovde mogao da se zaglavi
+        // na isti nacin kao u PatrolState.
+        enemy.moveToTarget(searchPosition, delta);
 
         timer += delta;
-
         if (timer >= SEARCH_TIME) {
-
             enemy.getStateMachine().changeState(
                     enemy,
                     enemy.createPatrolState()

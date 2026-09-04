@@ -60,6 +60,8 @@ public class MultiplayerScreen implements Screen {
     @Override
     public void render(float delta) {
 
+        Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
+
         time += delta;
 
         float width =
@@ -302,7 +304,7 @@ public class MultiplayerScreen implements Screen {
     private void connectToDedicatedServer() {
 
         MultiplayerClient client =
-            new MultiplayerClient();
+            new MultiplayerClient(((io.github.filip334.spacechaser.SpaceChaserGame) game).getSettings().getPlayerName());
 
         boolean connected =
             client.connect(
@@ -441,6 +443,12 @@ public class MultiplayerScreen implements Screen {
 
     @Override
     public void show() {
+        updateScreenProjection(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    /** Osvezava SpriteBatch koordinatni sistem odmah nakon resize-a prozora. */
+    private void updateScreenProjection(int width, int height) {
+        batch.getProjectionMatrix().setToOrtho2D(0f, 0f, width, height);
     }
 
     @Override
@@ -448,6 +456,7 @@ public class MultiplayerScreen implements Screen {
         int width,
         int height
     ) {
+        updateScreenProjection(width, height);
     }
 
     @Override

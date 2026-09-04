@@ -125,6 +125,9 @@ public abstract class Entity {
     public float getHealth() {
         return health.getHealth();
     }
+    public float getMaxHealth(){
+        return health.getMaxHealth();
+    }
     public void setHealth(float health) {
         this.health.setHealth(health);
     }

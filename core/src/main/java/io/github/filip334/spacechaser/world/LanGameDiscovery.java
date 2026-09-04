@@ -23,11 +23,13 @@ public class LanGameDiscovery {
         public final String address;
         public final int port;
         public final String hostName;
+        public final String gameMode;
 
-        public DiscoveredHost(String address, int port, String hostName) {
+        public DiscoveredHost(String address, int port, String hostName, String gameMode) {
             this.address = address;
             this.port = port;
             this.hostName = hostName;
+            this.gameMode = gameMode;
         }
     }
 
@@ -56,10 +58,11 @@ public class LanGameDiscovery {
 
                     String message = new String(responsePacket.getData(), 0, responsePacket.getLength(), StandardCharsets.UTF_8);
                     String[] parts = message.split("\\|");
-                    if (parts.length != 3 || !RESPONSE_PREFIX.equals(parts[0])) continue;
+                    if (parts.length != 4 || !RESPONSE_PREFIX.equals(parts[0])) continue;
 
                     String hostName = parts[1];
-                    int port = Integer.parseInt(parts[2]);
+                    String gameMode = parts[2];
+                    int port = Integer.parseInt(parts[3]);
                     String address = responsePacket.getAddress().getHostAddress();
 
                     boolean alreadyKnown = false;
@@ -70,7 +73,7 @@ public class LanGameDiscovery {
                         }
                     }
                     if (!alreadyKnown) {
-                        results.add(new DiscoveredHost(address, port, hostName));
+                        results.add(new DiscoveredHost(address, port, hostName, gameMode));
                     }
 
                 } catch (SocketTimeoutException ignored) {

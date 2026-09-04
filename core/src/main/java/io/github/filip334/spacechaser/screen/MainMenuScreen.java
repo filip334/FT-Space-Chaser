@@ -2,6 +2,8 @@ package io.github.filip334.spacechaser.screen;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -13,6 +15,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.filip334.spacechaser.world.MultiplayerClient;
+import io.github.filip334.spacechaser.SpaceChaserGame;
 
 public class MainMenuScreen implements Screen {
 
@@ -25,6 +28,7 @@ public class MainMenuScreen implements Screen {
     private Texture backgroundGradient;
     
     private Texture shipTexture;
+    private final String statusMessage;
 
     // Menu opcije
     private final String[] menuItems = {
@@ -35,6 +39,9 @@ public class MainMenuScreen implements Screen {
     };
 
     private final Rectangle[] menuBounds;
+    private final Rectangle nameBox = new Rectangle();
+    private boolean editingName;
+    private String nameDraft;
 
     // Boje
     private final Color cyan = new Color(0.0f, 0.95f, 1.0f, 1.0f);
@@ -45,8 +52,13 @@ public class MainMenuScreen implements Screen {
     private float time = 0f;
 
     public MainMenuScreen(Game game) {
+        this(game, null);
+    }
+
+    public MainMenuScreen(Game game, String statusMessage) {
 
         this.game = game;
+        this.statusMessage = statusMessage;
         
         batch = new SpriteBatch();
         shapeRenderer = new ShapeRenderer();
@@ -67,14 +79,19 @@ public class MainMenuScreen implements Screen {
         for (int i = 0; i < menuBounds.length; i++) {
             menuBounds[i] = new Rectangle();
         }
+
+        nameDraft = ((SpaceChaserGame) game).getSettings().getPlayerName();
     }
 
     @Override
     public void show() {
+        updateScreenProjection(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     @Override
     public void render(float delta) {
+
+        resetFullWindowViewport();
 
         time += delta;
 
@@ -87,8 +104,51 @@ public class MainMenuScreen implements Screen {
         drawTitle(width, height);
         drawShip(width, height);
         drawMenu(width, height);
+        drawNameBox(width, height);
+        drawStatusMessage(width, height);
 
         handleInput(width, height);
+    }
+
+    private void drawStatusMessage(float width, float height) {
+        if (statusMessage == null || statusMessage.isEmpty()) return;
+
+        batch.begin();
+        font.getData().setScale(1.2f);
+        font.setColor(cyan);
+        GlyphLayout layout = new GlyphLayout(font, statusMessage);
+        font.draw(batch, statusMessage, width * 0.075f, height * 0.08f + layout.height);
+        batch.end();
+    }
+
+    private void resetFullWindowViewport() {
+        Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
+    }
+
+    /**
+     * SpriteBatch i ShapeRenderer ne menjaju automatski projekciju kada se
+     * prozor promeni. Bez ovoga se meni crta u koordinatama prethodne veličine
+     * prozora, pa ostane prazan/crn deo ekrana dok se ne otvori drugi ekran.
+     */
+    private void updateScreenProjection(int width, int height) {
+        batch.getProjectionMatrix().setToOrtho2D(0f, 0f, width, height);
+        shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
+    }
+
+    private void drawNameBox(float width, float height) {
+        float x = width * 0.075f;
+        float y = height * 0.74f;
+        nameBox.set(x, y, width * 0.28f, 46f);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(cyan);
+        shapeRenderer.rect(nameBox.x, nameBox.y, nameBox.width, nameBox.height);
+        shapeRenderer.end();
+        batch.begin();
+        font.getData().setScale(1.2f);
+        font.setColor(white);
+        String displayedName = editingName ? nameDraft + "|" : nameDraft;
+        font.draw(batch, "Name: " + displayedName, x + 12f, y + 30f);
+        batch.end();
     }
 
     private Texture createGradientTexture() {
@@ -483,6 +543,13 @@ public class MainMenuScreen implements Screen {
         float mouseY =
             height - Gdx.input.getY();
 
+        if (nameBox.contains(mouseX, mouseY)) {
+            beginNameEditing();
+            return;
+        }
+
+        finishNameEditing();
+
         for (int i = 0; i < menuBounds.length; i++) {
 
             if (menuBounds[i].contains(mouseX, mouseY)) {
@@ -525,6 +592,50 @@ public class MainMenuScreen implements Screen {
         }
     }
 
+    private void beginNameEditing() {
+        if (editingName) return;
+        editingName = true;
+        nameDraft = ((SpaceChaserGame) game).getSettings().getPlayerName();
+        Gdx.input.setInputProcessor(new InputAdapter() {
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode == Input.Keys.BACKSPACE) {
+                    if (!nameDraft.isEmpty()) {
+                        nameDraft = nameDraft.substring(0, nameDraft.length() - 1);
+                    }
+                    return true;
+                }
+                if (keycode == Input.Keys.ENTER) {
+                    finishNameEditing();
+                    return true;
+                }
+                if (keycode == Input.Keys.ESCAPE) {
+                    editingName = false;
+                    Gdx.input.setInputProcessor(null);
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public boolean keyTyped(char character) {
+                if (character >= 32 && character != 127 && nameDraft.length() < 16) {
+                    nameDraft += character;
+                    return true;
+                }
+                return false;
+            }
+        });
+    }
+
+    private void finishNameEditing() {
+        if (!editingName) return;
+        ((SpaceChaserGame) game).getSettings().setPlayerName(nameDraft);
+        nameDraft = ((SpaceChaserGame) game).getSettings().getPlayerName();
+        editingName = false;
+        Gdx.input.setInputProcessor(null);
+    }
+
     // =========================================================
     // HOVER
     // =========================================================
@@ -552,6 +663,7 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
+        updateScreenProjection(width, height);
     }
 
     @Override
@@ -564,6 +676,7 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void hide() {
+        finishNameEditing();
     }
 
     @Override

@@ -28,14 +28,12 @@ public class PathFinder {
         }
     }
 
-    public Array<GridNode> findPath(
-            int startX,
-            int startY,
-            int targetX,
-            int targetY) {
+    public Array<GridNode> findPath(int startX,int startY,int targetX,int targetY){
 
         Array<GridNode> open = new Array<>();
         Array<GridNode> closed = new Array<>();
+
+        resetSearchState();
 
         GridNode start = getNode(startX, startY);
         GridNode target = getNode(targetX, targetY);
@@ -44,7 +42,7 @@ public class PathFinder {
             return new Array<>();
         }
 
-        if (!target.walkable) {
+        if (!start.walkable || !target.walkable) {
             return new Array<>();
         }
 
@@ -98,6 +96,17 @@ public class PathFinder {
         }
 
         return new Array<>();
+    }
+
+    private void resetSearchState() {
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                GridNode node = grid[x][y];
+                node.gCost = Float.MAX_VALUE;
+                node.hCost = 0f;
+                node.parent = null;
+            }
+        }
     }
 
     private Array<GridNode> reconstructPath(

@@ -4,6 +4,7 @@ import io.github.filip334.spacechaser.entity.Bullet;
 import io.github.filip334.spacechaser.entity.Enemy;
 import io.github.filip334.spacechaser.entity.Player;
 import io.github.filip334.spacechaser.entity.Wall;
+import io.github.filip334.spacechaser.entity.Coin;
 import io.github.filip334.spacechaser.world.GameWorld;
 
 import java.io.IOException;
@@ -21,6 +22,9 @@ public class GameServer {
     private final Map<Integer, ClientHandler> clients = new ConcurrentHashMap<>();
     private final Map<Integer, PlayerInputMessage> latestInputs = new ConcurrentHashMap<>();
     private final AtomicInteger nextPlayerId = new AtomicInteger(1);
+    private final Map<Integer, String> playerNames = new ConcurrentHashMap<>();
+    private volatile boolean gameStarted;
+    private static final String GAME_MODE = "2 Players vs AI";
 
     private ServerSocket serverSocket;
     private volatile boolean running = false;
@@ -113,6 +117,12 @@ public class GameServer {
     }
 
     private void tick(float deltaTime) {
+        // Dok je lobby otvoren server samo odrzava veze; simulacija pocinje
+        // tek kada host eksplicitno pritisne Start Game.
+        if (!gameStarted) {
+            return;
+        }
+
         for (PlayerInputMessage input : latestInputs.values()) {
             Player p = world.getPlayerById(input.playerId);
             if (p != null) {
@@ -162,6 +172,10 @@ public class GameServer {
             s.walls.add(state);
         }
 
+        for (Coin coin : world.getCoins()) {
+            s.coins.add(toSimpleState(coin.getId(), coin.getX(), coin.getY(), 0f));
+        }
+
         s.score = world.getScore();
         s.gameTime = world.getGameTime();
         s.matchOver = world.isMatchOver();
@@ -197,6 +211,41 @@ public class GameServer {
 
     public void onPlayerConnected(int playerId) {
         world.spawnPlayer(playerId);
+        broadcastLobbyStatus();
+    }
+
+    public void onPlayerNamed(int playerId, String playerName) {
+        playerNames.put(playerId, sanitizeName(playerName));
+        broadcastLobbyStatus();
+    }
+
+    public String getGuestName() {
+        for (Map.Entry<Integer, String> entry : playerNames.entrySet()) {
+            if (entry.getKey() != 1) return entry.getValue();
+        }
+        return "Waiting for player...";
+    }
+
+    public void startGame() {
+        if (clients.size() >= 2) {
+            gameStarted = true;
+            broadcastLobbyStatus();
+        }
+    }
+
+    private void broadcastLobbyStatus() {
+        LobbyStatusMessage status = new LobbyStatusMessage();
+        status.hostName = playerNames.getOrDefault(1, "Host");
+        status.guestName = getGuestName();
+        status.gameMode = GAME_MODE;
+        status.gameStarted = gameStarted;
+        for (ClientHandler client : clients.values()) client.send(status);
+    }
+
+    private String sanitizeName(String name) {
+        if (name == null) return "Player";
+        String result = name.trim();
+        return result.isEmpty() ? "Player" : result.substring(0, Math.min(16, result.length()));
     }
 
     public void onPlayerInput(PlayerInputMessage input) {
@@ -206,6 +255,8 @@ public class GameServer {
     public void onPlayerDisconnected(int playerId) {
         clients.remove(playerId);
         latestInputs.remove(playerId);
+        playerNames.remove(playerId);
         world.removePlayer(playerId);
+        broadcastLobbyStatus();
     }
 }

@@ -4,11 +4,10 @@ import com.badlogic.gdx.utils.Array;
 import io.github.filip334.spacechaser.entity.Bullet;
 import io.github.filip334.spacechaser.entity.Enemy;
 import io.github.filip334.spacechaser.entity.Player;
+import io.github.filip334.spacechaser.entity.Coin;
 import io.github.filip334.spacechaser.entity.Wall;
 
 public class CollisionSystem {
-    // ENEMY DAMAGE
-    private static final float ENEMY_DAMAGE = 33f;
     
     public int checkCollisions(Player player, Array<Bullet> bullets, Array<Enemy> enemies, Array<Wall> walls) {
         int scoreGained = 0;
@@ -18,6 +17,23 @@ public class CollisionSystem {
         checkPlayerVsWalls(player, walls);
         checkEnemiesVsWalls(enemies, walls);
         checkPlayerVsEnemies(player, enemies);
+        return scoreGained;
+    }
+
+    public int collectCoins(Player player, Array<Coin> coins) {
+        if (player.isDead()) return 0;
+
+        int scoreGained = 0;
+        for (int i = coins.size - 1; i >= 0; i--) {
+            Coin coin = coins.get(i);
+            float dx = player.getX() - coin.getX();
+            float dy = player.getY() - coin.getY();
+            float pickupDistance = Coin.RADIUS + 42f;
+            if (dx * dx + dy * dy <= pickupDistance * pickupDistance) {
+                coins.removeIndex(i);
+                scoreGained += 100;
+            }
+        }
         return scoreGained;
     }
 
@@ -34,7 +50,6 @@ public class CollisionSystem {
         }
     }
 
-    /** Tests the complete bullet path so a fast projectile cannot skip a wall. */
     private boolean bulletCrossedWall(Bullet bullet, Wall wall) {
 
         float minX = wall.getX();
@@ -103,20 +118,8 @@ public class CollisionSystem {
 
         return true;
     }
-
-    private float[] clipSegment(float start, float delta, float min, float max) {
-        if (delta == 0f) {
-            return start >= min && start <= max ? new float[]{0f, 1f} : null;
-        }
-
-        float first = (min - start) / delta;
-        float second = (max - start) / delta;
-        return new float[]{Math.min(first, second), Math.max(first, second)};
-    }
-
-    private void checkPlayerVsWalls(
-        Player player,
-        Array<Wall> walls) {
+    
+    private void checkPlayerVsWalls(Player player,Array<Wall> walls) {
 
         if (!overlapsAnyWall(player, walls)) {
             return;
@@ -186,8 +189,10 @@ public class CollisionSystem {
 
                 if (bullet.getHitbox().overlaps(enemy.getHitbox())) {
                     bullet.isDead(true);
-                    enemy.isDead(true);
-                    scoreGained += 10;
+                    enemy.takeDamage(bullet.DAMAGE);
+                    if (enemy.isDead()) {
+                        scoreGained += 10;
+                    }
                     break;
                 }
             }
@@ -197,13 +202,20 @@ public class CollisionSystem {
     }
 
     private void checkPlayerVsEnemies(Player player, Array<Enemy> enemies) {
+        // Mrtav igrac vise nije fizicka meta. Njegov hitbox moze ostati na
+        // poslednjoj poziciji radi stanja sveta, ali neprijatelji ne smeju da
+        // nestaju kada ga dodirnu.
+        if (player.isDead()) {
+            return;
+        }
+
         for (Enemy enemy : enemies) {
             if (enemy.isDead()) {
                 continue;
             }
 
             if (player.getHitbox().overlaps(enemy.getHitbox())) {
-                player.takeDamage(ENEMY_DAMAGE);
+                player.takeDamage(enemy.DAMAGE);
                 enemy.isDead(true);
             }
         }

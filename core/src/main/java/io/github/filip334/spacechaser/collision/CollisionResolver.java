@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package io.github.filip334.spacechaser.collision;
 
 import com.badlogic.gdx.math.Intersector;
@@ -172,7 +168,6 @@ public class CollisionResolver {
     }
 
     private static class CollisionData {
-
         float depth;
         Vector2 normal = new Vector2();
     }

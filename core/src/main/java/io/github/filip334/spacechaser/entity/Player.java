@@ -11,7 +11,7 @@ public class Player extends Entity{
     
     // INPUT 
     //PlayerInput input = new PlayerInput();
-    InputManager input = new InputManager(new GameSettings());
+    private final InputManager input;
     
     //
     FuelComponent fuel;
@@ -20,9 +20,15 @@ public class Player extends Entity{
     // ---------------- CONSTRUCTOR ----------------
     
     public Player() {
+        input = new InputManager(new GameSettings());
     }
 
     public Player(float x, float y) {
+        this(x, y, new GameSettings(), true);
+    }
+
+    public Player(float x, float y, GameSettings settings, boolean readsKeyboard) {
+        input = new InputManager(settings, readsKeyboard);
         this.x = x;
         this.y = y;
         
@@ -34,8 +40,8 @@ public class Player extends Entity{
         this.health = new HealthComponent(100);
         fuel = new FuelComponent(100);
         
-        width = 128;
-        height = 128;
+        width = 50;
+        height = 50;
         
         createHitbox();
     }
@@ -103,32 +109,23 @@ public class Player extends Entity{
     // HITBOX
     private void createHitbox() {
         hitbox = new CompoundHitbox();
-
         // CENTAR
-        hitbox.addBox(-10, 0, 75, 25);
-
+        hitbox.addBox(-8f, 0f, 46f, 19f);
         // FRONT
-        hitbox.addBox(38, 0, 25, 14);
-
+        hitbox.addBox(23f, 0f, 12f, 17f);
         // LEFT WING
-        hitbox.addBox(-20, 28, 15, 25);
-
+        hitbox.addBox(-6f, 22f, 17f, 27f);
         // RIGHT WING
-        hitbox.addBox(-20, -28, 15, 25);
-
+        hitbox.addBox(-6f, -22f, 17f, 27f);
         // LEFT ENGINE
-        hitbox.addBox(-30, 18, 40, 10);
-
+        hitbox.addBox(-26f, 18f, 17f, 10f);
         // RIGHT ENGINE
-        hitbox.addBox(-30, -18, 40, 10);
+        hitbox.addBox(-26f, -18f, 17f, 10f);
     }
     
     // GET / SET
     
         // HEALTH
-    public float getMaxHealth(){
-        return health.getMaxHealth();
-    }
     public void setNetworkHealth(float health) {
 
         this.health.setHealth(health);
@@ -151,18 +148,6 @@ public class Player extends Entity{
     }
     
         // VELOCITY
-    public float getVelocityX() {
-        return velocityX;
-    }
-    public float getVelocityY() {
-        return velocityY;
-    }
-    public void setVelocityX(float velocityX) {
-        this.velocityX = velocityX;
-    }
-    public void setVelocityY(float velocityY) {
-        this.velocityY = velocityY;
-    }
     public void setVelocity(float velocityX, float velocityY) {
         this.velocityX = velocityX;
         this.velocityY = velocityY;
@@ -221,10 +206,10 @@ public class Player extends Entity{
         return input.moveForward();
     }
     public void setNetworkBoosting(boolean boosting) {
-        input.boost = boosting;
+        input.setBoost(boosting);
     }
     public void setNetworkThrusting(boolean thrusting) {
-        input.forward = thrusting;
+        input.setForward(thrusting);
     }
     public void setNetworkState(float x,float y,float rotation){
         this.x = x;
@@ -237,6 +222,7 @@ public class Player extends Entity{
      * Za mrezno ogledalo (MultiplayerGameWorld) - server salje da li je
      * igrac trenutno pod thrust-om, klijent to primenjuje da bi animacija
      * i za protivnika (i za sopstveni brod u multiplayeru) radila ispravno.
+     * @param delta
      */
     
     
@@ -253,17 +239,14 @@ public class Player extends Entity{
     }
     
     public void applyInput(boolean left, boolean right, boolean forward, boolean backward, boolean boost, boolean shoot) {
-        input.left = left;
-        input.right = right;
-        input.forward = forward && fuel.hasFuel();
-        input.backward = backward;
-        input.boost = boost && fuel.hasFuel();
-        input.shoot = shoot;
+        input.setState(left, right, forward && fuel.hasFuel(), backward,
+                boost && fuel.hasFuel(), shoot);
     }
     /**
      * Update varijanta za mrezno kontrolisane igrace - NE cita lokalnu tastaturu
      * (Gdx.input ne postoji/ne vazi za druge igrace), samo primenjuje input
-     * koji je vec postavljen preko applyInput().
+     * koji je vec postavljen preko applyInput(). 
+     * @param delta
      */
     public void updateNetworked(float delta) {
         if (isDead) {

@@ -4,13 +4,16 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import io.github.filip334.spacechaser.collision.CollisionSystem;
 import io.github.filip334.spacechaser.entity.Bullet;
 import io.github.filip334.spacechaser.entity.Enemy;
 import io.github.filip334.spacechaser.entity.Player;
+import io.github.filip334.spacechaser.entity.Coin;
 import io.github.filip334.spacechaser.entity.Wall;
+import io.github.filip334.spacechaser.enemy.PathFinder;
 import io.github.filip334.spacechaser.renderer.EntityRenderer;
 import io.github.filip334.spacechaser.renderer.HudRenderer;
 import io.github.filip334.spacechaser.screen.MainMenuScreen;
@@ -31,7 +34,10 @@ public class GameWorld {
 
     private final Array<Bullet> bullets = new Array<>();
     private final Array<Enemy> enemies = new Array<>();
+    private final Array<Coin> coins = new Array<>();
     private final EncounterField encounterField;
+    private final PathFinder enemyPathFinder;
+    private static final float NAVIGATION_CELL_SIZE = 30f;
 
     // RENDER (mogu biti null ako je GameWorld napravljen bez Game-a, npr. na serveru)
     private final EntityRenderer entityRenderer;
@@ -49,6 +55,8 @@ public class GameWorld {
 
     // CONFIG
     private static final int ENEMY_WAVE_SIZE = 3;
+    private static final int SCORE_PICKUP_COUNT = 5;
+    private int nextCoinId = 1;
 
     // ---------------- CONSTRUCTORS ----------------
 
@@ -65,28 +73,31 @@ public class GameWorld {
         // NE dodajemo default igraca ovde - server ovaj konstruktor koristi
         // i igraci se dodaju dinamicki preko spawnPlayer(id) kad se konektuju.
         encounterField = new EncounterField();
+        enemyPathFinder = createEnemyPathFinder();
+        spawnCoins();
     }
 
     /**
      * Singleplayer konstruktor sa renderovanjem (klijent).
      */
-    public GameWorld(Game game) {
+    public GameWorld(Game game, GameSettings settings) {
         this.game = game;
 
-        Texture playerIdleTexture = new Texture("Original/ship.png");
-        Texture playerThrustSheet = new Texture("Original/shipMove.png");
+        Texture playerIdleTexture = new Texture("Original/shipPixel.png");
         Texture flameSheet = new Texture("Original/moveFire.png");
-        Texture enemyTexture = new Texture("Original/rocket.png");
+        Texture enemyTexture = new Texture("Original/rocketPixel.png");
         Texture bulletTexture = new Texture("Original/bullet.png");
 
-        entityRenderer = new EntityRenderer(playerIdleTexture, playerThrustSheet, flameSheet, enemyTexture, bulletTexture);
+        entityRenderer = new EntityRenderer(playerIdleTexture, flameSheet, enemyTexture, bulletTexture);
         shapeRenderer = new ShapeRenderer();
         hudRenderer = new HudRenderer();
 
-        players.put(LOCAL_PLAYER_ID, new Player(100, 100));
+        players.put(LOCAL_PLAYER_ID, new Player(100, 100, settings, true));
         encounterField = new EncounterField();
+        enemyPathFinder = createEnemyPathFinder();
 
         spawnEnemyWave();
+        spawnCoins();
     }
 
     // ---------------- UPDATE ----------------
@@ -107,6 +118,7 @@ public class GameWorld {
 
         for (Player p : players.values()) {
             score += collisionSystem.checkCollisions(p, bullets, enemies, encounterField.getWalls());
+            score += collisionSystem.collectCoins(p, coins);
         }
 
         handleGameOver();
@@ -203,30 +215,41 @@ public class GameWorld {
         for (Enemy e : enemies) entityRenderer.render(batch, e);
     }
 
-    public void renderShapes() {
+    public void renderShapes(float offsetX, Matrix4 projectionMatrix) {
         if (shapeRenderer == null) return;
 
+        shapeRenderer.setProjectionMatrix(projectionMatrix);
+        shapeRenderer.setTransformMatrix(new Matrix4().setToTranslation(offsetX, 0f, 0f));
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         encounterField.render(shapeRenderer);
+        for (Coin coin : coins) {
+            shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.YELLOW);
+            shapeRenderer.circle(coin.getX(), coin.getY(), Coin.RADIUS);
+        }
         shapeRenderer.end();
+        shapeRenderer.setTransformMatrix(new Matrix4());
     }
 
-    public void renderHitboxes() {
+    public void renderHitboxes(float offsetX, Matrix4 projectionMatrix) {
         if (shapeRenderer == null) return;
 
+        shapeRenderer.setProjectionMatrix(projectionMatrix);
+        shapeRenderer.setTransformMatrix(new Matrix4().setToTranslation(offsetX, 0f, 0f));
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         for (Player p : players.values()) p.hitBoxDebugRenderer(shapeRenderer);
         for (Enemy e : enemies) e.hitBoxDebugRenderer(shapeRenderer);
         for (Bullet b : bullets) b.hitBoxDebugRenderer(shapeRenderer);
         shapeRenderer.end();
+        shapeRenderer.setTransformMatrix(new Matrix4());
     }
 
-    public void renderHud(SpriteBatch batch) {
+    public void renderHud(SpriteBatch batch, Matrix4 projectionMatrix) {
         if (hudRenderer == null) return;
 
         Player local = players.get(LOCAL_PLAYER_ID);
         if (local == null) return;
 
+        hudRenderer.setProjectionMatrix(projectionMatrix);
         hudRenderer.render(batch, local.getHealth(), local.getMaxHealth(),
                 local.getFuel(), local.getMaxFuel(), score, gameTime);
     }
@@ -241,10 +264,87 @@ public class GameWorld {
         float maxY = encounterField.getFieldY() + encounterField.getFieldHeight() - margin;
 
         for (int i = 0; i < ENEMY_WAVE_SIZE; i++) {
-            float x = MathUtils.random(minX, maxX);
-            float y = MathUtils.random(minY, maxY);
-            enemies.add(new Enemy(x, y));
+            enemies.add(createEnemyInsideMap(minX, maxX, minY, maxY));
         }
+    }
+
+    private Enemy createEnemyInsideMap(float minX, float maxX, float minY, float maxY) {
+        for (int attempt = 0; attempt < 30; attempt++) {
+            Enemy enemy = new Enemy(MathUtils.random(minX, maxX), MathUtils.random(minY, maxY));
+            configureEnemyNavigation(enemy);
+            if (enemy.isInNavigablePosition()) {
+                return enemy;
+            }
+        }
+
+        // Ova tacka je u otvorenom uglu mape i koristi se samo ako je RNG vise puta pogodio zid.
+        Enemy fallback = new Enemy(minX, minY);
+        configureEnemyNavigation(fallback);
+        return fallback;
+    }
+
+    private void spawnCoins() {
+        float margin = 80f;
+        float minX = encounterField.getFieldX() + margin;
+        float maxX = encounterField.getFieldX() + encounterField.getFieldWidth() - margin;
+        float minY = encounterField.getFieldY() + margin;
+        float maxY = encounterField.getFieldY() + encounterField.getFieldHeight() - margin;
+
+        for (int i = 0; i < SCORE_PICKUP_COUNT; i++) {
+            for (int attempt = 0; attempt < 30; attempt++) {
+                float x = MathUtils.random(minX, maxX);
+                float y = MathUtils.random(minY, maxY);
+                if (isPickupPositionClear(x, y)) {
+                    coins.add(new Coin(nextCoinId++, x, y));
+                    break;
+                }
+            }
+        }
+    }
+
+    private boolean isPickupPositionClear(float x, float y) {
+        float clearance = Coin.RADIUS + 8f;
+        for (Wall wall : encounterField.getWalls()) {
+            float closestX = MathUtils.clamp(x, wall.getX(), wall.getX() + wall.getWidth());
+            float closestY = MathUtils.clamp(y, wall.getY(), wall.getY() + wall.getHeight());
+            float dx = x - closestX;
+            float dy = y - closestY;
+            if (dx * dx + dy * dy < clearance * clearance) return false;
+        }
+        return true;
+    }
+
+    private void configureEnemyNavigation(Enemy enemy) {
+        enemy.setNavigation(encounterField.getWalls(), encounterField.getFieldX(), encounterField.getFieldY(),
+                encounterField.getFieldWidth(), encounterField.getFieldHeight(), enemyPathFinder, NAVIGATION_CELL_SIZE);
+    }
+
+    private PathFinder createEnemyPathFinder() {
+        int columns = (int) (encounterField.getFieldWidth() / NAVIGATION_CELL_SIZE);
+        int rows = (int) (encounterField.getFieldHeight() / NAVIGATION_CELL_SIZE);
+        boolean[][] walkable = new boolean[rows][columns];
+
+        for (int row = 0; row < rows; row++) {
+            for (int column = 0; column < columns; column++) {
+                float x = encounterField.getFieldX() + (column + 0.5f) * NAVIGATION_CELL_SIZE;
+                float y = encounterField.getFieldY() + (row + 0.5f) * NAVIGATION_CELL_SIZE;
+                walkable[row][column] = isNavigationCellClear(x, y);
+            }
+        }
+        return new PathFinder(walkable);
+    }
+
+    private boolean isNavigationCellClear(float x, float y) {
+        // Malo sire od hitbox-a rakete, tako da A* ne bira celiju pored koje
+        // raketa fizicki ne moze da prodje.
+        final float clearance = 30f;
+        for (Wall wall : encounterField.getWalls()) {
+            if (x >= wall.getX() - clearance && x <= wall.getX() + wall.getWidth() + clearance
+                    && y >= wall.getY() - clearance && y <= wall.getY() + wall.getHeight() + clearance) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // ---------------- CLEAN UP ----------------
@@ -318,7 +418,7 @@ public class GameWorld {
         float x = MathUtils.random(minX, maxX);
         float y = MathUtils.random(minY, maxY);
 
-        players.put(playerId, new Player(x, y));
+        players.put(playerId, new Player(x, y, new GameSettings(), false));
     }
 
     public void removePlayer(int playerId) {
@@ -343,6 +443,10 @@ public class GameWorld {
 
     public Array<Bullet> getBullets() {
         return bullets;
+    }
+
+    public Array<Coin> getCoins() {
+        return coins;
     }
 
     public Array<Wall> getWalls() {

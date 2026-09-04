@@ -3,6 +3,7 @@ package io.github.filip334.spacechaser.lwjgl3;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import io.github.filip334.spacechaser.SpaceChaserGame;
+import io.github.filip334.spacechaser.world.GameLayout;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {
@@ -28,7 +29,15 @@ public class Lwjgl3Launcher {
         //// useful for testing performance, but can also be very stressful to some hardware.
         //// You may also need to configure GPU drivers to fully disable Vsync; this can cause screen tearing.
 
-        configuration.setWindowedMode(920, 920);
+        int availableWidth = Lwjgl3ApplicationConfiguration.getDisplayMode().width - 80;
+        int availableHeight = Lwjgl3ApplicationConfiguration.getDisplayMode().height - 120;
+        float scale = Math.min(1f, Math.min(
+                availableWidth / (float) GameLayout.WINDOW_WIDTH,
+                availableHeight / (float) GameLayout.WINDOW_HEIGHT));
+        configuration.setWindowedMode(
+                Math.round(GameLayout.WINDOW_WIDTH * scale),
+                Math.round(GameLayout.WINDOW_HEIGHT * scale));
+        configuration.setResizable(true);
         /*configuration.setWindowedMode(
                 Lwjgl3ApplicationConfiguration.getDisplayMode().width,
                 (int)(Lwjgl3ApplicationConfiguration.getDisplayMode().height-80)

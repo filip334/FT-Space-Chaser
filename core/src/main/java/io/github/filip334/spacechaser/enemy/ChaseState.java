@@ -1,44 +1,33 @@
 package io.github.filip334.spacechaser.enemy;
 
+import com.badlogic.gdx.math.Vector2;
 import io.github.filip334.spacechaser.entity.Enemy;
 
 public class ChaseState implements EnemyState {
 
-    private float lostPlayerTimer;
-
-    private static final float MAX_LOST_TIME = 2f;
+    private Vector2 lastKnownPlayerPosition;
 
     @Override
     public void enter(Enemy enemy) {
-
-        lostPlayerTimer = 0f;
+        if (enemy.getPlayer() != null) {
+            lastKnownPlayerPosition = enemy.getPlayerPosition().cpy();
+        }
     }
 
     @Override
     public void update(Enemy enemy, float delta) {
-
         if (enemy.canSeePlayer()) {
-
-            lostPlayerTimer = 0f;
-
-            enemy.moveTowards(
-                    enemy.getPlayerPosition(),
-                    delta
-            );
-
+            lastKnownPlayerPosition = enemy.getPlayerPosition().cpy();
+            enemy.moveToPlayer(delta);
         } else {
+            Vector2 searchTarget = lastKnownPlayerPosition != null
+                    ? lastKnownPlayerPosition
+                    : enemy.getPosition();
 
-            lostPlayerTimer += delta;
-
-            if (lostPlayerTimer >= MAX_LOST_TIME) {
-
-                enemy.getStateMachine().changeState(
-                        enemy,
-                        new SearchState(
-                                enemy.getPosition().cpy()
-                        )
-                );
-            }
+            enemy.getStateMachine().changeState(
+                    enemy,
+                    new SearchState(searchTarget)
+            );
         }
     }
 

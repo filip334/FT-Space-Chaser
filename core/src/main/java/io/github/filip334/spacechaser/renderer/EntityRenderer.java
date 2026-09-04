@@ -16,26 +16,25 @@ public class EntityRenderer {
     // ovaj offset ga zarotira da izgleda kao da izbija iz motora unazad.
     // Ako posle testa izgleda pod pogresnim uglom, promeni znak (+90 <-> -90).
     private static final float FLAME_ROTATION_OFFSET = -90f;
-    private static final float FLAME_WIDTH = 36f;
-    private static final float FLAME_HEIGHT = 60f;
+    private static final float FLAME_WIDTH = 11f;
+    private static final float FLAME_HEIGHT = 18f;
 
     private final Texture playerIdleTexture;
-    private final Texture playerThrustSheet;
+    private final TextureRegion playerIdleRegion;
     private final Texture flameSheet;
 
     private final Texture enemyTexture;
     private final Texture bulletTexture;
 
-    // Tvoj AnimationController prati vreme po instanci - svaki igrac
-    // dobija svoj kontroler (za telo broda i posebno za plamen motora).
-    private final Map<Player, AnimationController> shipAnimations = new HashMap<>();
+    // Svaki igrac ima sopstveni kontroler plamena, da animacija ostane
+    // nezavisna za lokalnog igraca i protivnika.
     private final Map<Player, AnimationController> flameAnimations = new HashMap<>();
 
-    public EntityRenderer(Texture playerIdleTexture, Texture playerThrustSheet, Texture flameSheet,
+    public EntityRenderer(Texture playerIdleTexture, Texture flameSheet,
                            Texture enemyTexture, Texture bulletTexture) {
 
         this.playerIdleTexture = playerIdleTexture;
-        this.playerThrustSheet = playerThrustSheet;
+        this.playerIdleRegion = new TextureRegion(playerIdleTexture);
         this.flameSheet = flameSheet;
         this.enemyTexture = enemyTexture;
         this.bulletTexture = bulletTexture;
@@ -45,9 +44,6 @@ public class EntityRenderer {
      * Poziva se jednom po frejmu da sve aktivne animacije odmaknu (iz GameWorld/MultiplayerGameWorld).
      */
     public void update(float delta) {
-        for (AnimationController controller : shipAnimations.values()) {
-            controller.update(delta);
-        }
         for (AnimationController controller : flameAnimations.values()) {
             controller.update(delta);
         }
@@ -72,18 +68,8 @@ public class EntityRenderer {
     }
 
     private void renderPlayer(SpriteBatch batch, Player player){
-        AnimationController shipAnim = getShipAnimation(player);
-
-        if (player.isThrusting()) {
-            shipAnim.playLoop("thrust");
-        } else {
-            shipAnim.playLoop("idle");
-        }
-
-        TextureRegion frame = shipAnim.getFrame();
-
         batch.draw(
-            frame,
+            playerIdleRegion,
             player.getX() - player.getWidth() / 2f,
             player.getY() - player.getHeight() / 2f,
             player.getWidth() / 2f,
@@ -95,35 +81,17 @@ public class EntityRenderer {
             player.getRotation()
         );
 
-        if (player.isBoosting()) {
+        // Plamen je animacija za svako kretanje unapred; boost samo utice na brzinu.
+        if (player.isThrusting()) {
             AnimationController flameAnim = getFlameAnimation(player);
             flameAnim.playLoop("flame");
 
             TextureRegion flameFrame = flameAnim.getFrame();
-            float engineOffsetY = player.getHeight() * 0.16f;
+            float engineOffsetY = player.getHeight() * 0.24f;
 
             drawEngineFlame(batch, flameFrame, player, engineOffsetY);
             drawEngineFlame(batch, flameFrame, player, -engineOffsetY);
         }
-    }
-
-    private AnimationController getShipAnimation(Player player) {
-        AnimationController controller = shipAnimations.get(player);
-        if (controller == null) {
-            controller = new AnimationController();
-
-            // jedan staticni frejm - cela idle tekstura
-            controller.add("idle", playerIdleTexture, 1,
-                    playerIdleTexture.getWidth(), playerIdleTexture.getHeight(), 1f);
-
-            // shipMove.png je grid 2 kolone x 4 reda = 8 frejmova od 500x500
-            controller.add("thrust", playerThrustSheet, 8,
-                    playerThrustSheet.getWidth(), playerThrustSheet.getHeight() / 8, FRAME_DURATION);
-
-            controller.playLoop("idle");
-            shipAnimations.put(player, controller);
-        }
-        return controller;
     }
 
     private AnimationController getFlameAnimation(Player player) {
@@ -151,11 +119,11 @@ public class EntityRenderer {
         float sin = (float) Math.sin(rad);
 
         // iza broda (suprotno od pravca "napred")
-        float localOffsetX = -player.getWidth() * 0.32f;
+        float localOffsetX = -player.getWidth() * 0.6f;
 
         float worldX = player.getX() + localOffsetX * cos - localOffsetY * sin;
         float worldY = player.getY() + localOffsetX * sin + localOffsetY * cos;
-
+        
         batch.draw(
             frame,
             worldX - FLAME_WIDTH / 2f,
@@ -214,7 +182,6 @@ public class EntityRenderer {
 
     public void dispose() {
         playerIdleTexture.dispose();
-        playerThrustSheet.dispose();
         flameSheet.dispose();
         enemyTexture.dispose();
         bulletTexture.dispose();

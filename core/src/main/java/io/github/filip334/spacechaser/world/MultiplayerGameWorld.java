@@ -3,13 +3,16 @@ package io.github.filip334.spacechaser.world;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import io.github.filip334.spacechaser.entity.Bullet;
 import io.github.filip334.spacechaser.entity.Enemy;
 import io.github.filip334.spacechaser.entity.Player;
+import io.github.filip334.spacechaser.entity.Coin;
 import io.github.filip334.spacechaser.entity.Wall;
 import io.github.filip334.spacechaser.renderer.EntityRenderer;
 import io.github.filip334.spacechaser.server.EntityState;
 import io.github.filip334.spacechaser.server.GameStateSnapshot;
+import io.github.filip334.spacechaser.world.GameSettings;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -29,6 +32,7 @@ public class MultiplayerGameWorld {
     private final Map<Integer, Enemy> enemies = new LinkedHashMap<>();
     private final Map<Integer, Bullet> bullets = new LinkedHashMap<>();
     private final Map<Integer, Wall> walls = new LinkedHashMap<>();
+    private final Map<Integer, Coin> coins = new LinkedHashMap<>();
 
     private final EntityRenderer entityRenderer;
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
@@ -38,9 +42,9 @@ public class MultiplayerGameWorld {
     private volatile float gameTime = 0f;
     private volatile boolean matchOver = false;
 
-    public MultiplayerGameWorld(Texture playerIdleTexture, Texture playerThrustSheet, Texture flameSheet,
+    public MultiplayerGameWorld(Texture playerIdleTexture, Texture flameSheet,
                                  Texture enemyTexture, Texture bulletTexture) {
-        entityRenderer = new EntityRenderer(playerIdleTexture, playerThrustSheet, flameSheet, enemyTexture, bulletTexture);
+        entityRenderer = new EntityRenderer(playerIdleTexture, flameSheet, enemyTexture, bulletTexture);
     }
 
     /**
@@ -63,6 +67,7 @@ public class MultiplayerGameWorld {
         syncEnemies(snapshot);
         syncBullets(snapshot);
         syncWalls(snapshot);
+        syncCoins(snapshot);
 
         this.score = snapshot.score;
         this.gameTime = snapshot.gameTime;
@@ -77,7 +82,7 @@ public class MultiplayerGameWorld {
 
             Player p = players.get(state.id);
             if (p == null) {
-                p = new Player(state.x, state.y);
+                p = new Player(state.x, state.y, new GameSettings(), false);
                 players.put(state.id, p);
             }
             p.setNetworkState(state.x, state.y, state.rotation);
@@ -138,6 +143,17 @@ public class MultiplayerGameWorld {
         walls.keySet().retainAll(ids);
     }
 
+    private void syncCoins(GameStateSnapshot snapshot) {
+        Set<Integer> ids = new HashSet<>();
+        for (EntityState state : snapshot.coins) {
+            ids.add(state.id);
+            if (!coins.containsKey(state.id)) {
+                coins.put(state.id, new Coin(state.id, state.x, state.y));
+            }
+        }
+        coins.keySet().retainAll(ids);
+    }
+
     public synchronized void render(SpriteBatch batch) {
         for (Player p : players.values()) {
             entityRenderer.render(batch, p);
@@ -150,12 +166,19 @@ public class MultiplayerGameWorld {
         }
     }
 
-    public synchronized void renderShapes() {
+    public synchronized void renderShapes(float offsetX, Matrix4 projectionMatrix) {
+        shapeRenderer.setProjectionMatrix(projectionMatrix);
+        shapeRenderer.setTransformMatrix(new Matrix4().setToTranslation(offsetX, 0f, 0f));
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (Wall w : walls.values()) {
             w.render(shapeRenderer);
         }
+        shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.YELLOW);
+        for (Coin coin : coins.values()) {
+            shapeRenderer.circle(coin.getX(), coin.getY(), Coin.RADIUS);
+        }
         shapeRenderer.end();
+        shapeRenderer.setTransformMatrix(new Matrix4());
     }
 
     public synchronized Collection<Player> getPlayers() {

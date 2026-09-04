@@ -3,6 +3,9 @@ package io.github.filip334.spacechaser.world;
 import io.github.filip334.spacechaser.server.GameStateSnapshot;
 import io.github.filip334.spacechaser.server.PlayerInputMessage;
 import io.github.filip334.spacechaser.server.WelcomeMessage;
+import io.github.filip334.spacechaser.server.JoinLobbyMessage;
+import io.github.filip334.spacechaser.server.LobbyStatusMessage;
+import io.github.filip334.spacechaser.server.NetworkMessage;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -25,8 +28,12 @@ public class MultiplayerClient {
 
     private Consumer<Integer> onConnected;
     private Runnable onDisconnected;
+    private Consumer<LobbyStatusMessage> onLobbyStatus;
+    private volatile LobbyStatusMessage latestLobbyStatus;
+    private final String playerName;
 
-    public MultiplayerClient() {
+    public MultiplayerClient(String playerName) {
+        this.playerName = playerName;
     }
 
     /**
@@ -79,6 +86,12 @@ public class MultiplayerClient {
                         world.setLocalPlayerId(localPlayerId);
                     }
                     if (onConnected != null) onConnected.accept(localPlayerId);
+                    JoinLobbyMessage join = new JoinLobbyMessage();
+                    join.playerName = playerName;
+                    send(join);
+                } else if (received instanceof LobbyStatusMessage) {
+                    latestLobbyStatus = (LobbyStatusMessage) received;
+                    if (onLobbyStatus != null) onLobbyStatus.accept(latestLobbyStatus);
                 }
             }
         } catch (EOFException | SocketException e) {
@@ -92,10 +105,14 @@ public class MultiplayerClient {
     }
 
     public void sendInput(PlayerInputMessage input) {
+        send(input);
+    }
+
+    private void send(NetworkMessage message) {
         if (!running) return;
         try {
-            input.playerId = localPlayerId;
-            out.writeObject(input);
+            if (message instanceof PlayerInputMessage) ((PlayerInputMessage) message).playerId = localPlayerId;
+            out.writeObject(message);
             out.flush();
             out.reset();
         } catch (IOException e) {
@@ -121,4 +138,8 @@ public class MultiplayerClient {
 
     public void setOnConnected(Consumer<Integer> callback) { this.onConnected = callback; }
     public void setOnDisconnected(Runnable callback) { this.onDisconnected = callback; }
+    public void setOnLobbyStatus(Consumer<LobbyStatusMessage> callback) {
+        this.onLobbyStatus = callback;
+        if (latestLobbyStatus != null) callback.accept(latestLobbyStatus);
+    }
 }

@@ -1,9 +1,10 @@
 package io.github.filip334.spacechaser.renderer;
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
+import io.github.filip334.spacechaser.world.GameLayout;
 public class HudRenderer {
     
     //
@@ -15,6 +16,10 @@ public class HudRenderer {
         font.setColor(Color.WHITE);
         font.getData().setScale(1.5f);
         shapeRenderer = new ShapeRenderer();
+    }
+
+    public void setProjectionMatrix(Matrix4 projectionMatrix) {
+        shapeRenderer.setProjectionMatrix(projectionMatrix);
     }
     // ---------------- HUD ----------------
     private void drawBar(float x, float y, float width, float height,
@@ -48,8 +53,8 @@ public class HudRenderer {
     
     public void render(SpriteBatch batch, float health, float maxHealth,
                        float fuel, float maxFuel, int score, float gameTime) {
-        float screenHeight = Gdx.graphics.getHeight();
-        float barX = 20f;
+        float screenHeight = GameLayout.WINDOW_HEIGHT;
+        float barX = (GameLayout.SIDE_PANEL_WIDTH - 220f) / 2f;
         float healthY = screenHeight - 40f;
         float fuelY = screenHeight - 75f;
         drawBar(barX, healthY, 220f, 18f, health, maxHealth, Color.RED);
@@ -57,8 +62,10 @@ public class HudRenderer {
         batch.begin();
         font.draw(batch, "Health", barX, healthY + 35f);
         font.draw(batch, "Fuel", barX, fuelY + 35f);
-        font.draw(batch, "Score: " + score, 20f, screenHeight - 110f);
-        font.draw(batch, "Time: " + formatTime(gameTime), 20f, screenHeight - 145f);
+        float infoX = GameLayout.SIDE_PANEL_WIDTH + GameLayout.MAP_VIEWPORT_SIZE
+                + (GameLayout.SIDE_PANEL_WIDTH - 220f) / 2f;
+        font.draw(batch, "Score: " + score, infoX, screenHeight - 110f);
+        font.draw(batch, "Time: " + formatTime(gameTime), infoX, screenHeight - 145f);
         batch.end();
     }
 
@@ -74,8 +81,8 @@ public class HudRenderer {
                                    boolean opponentPresent,
                                    int score, float gameTime) {
 
-        float screenWidth = Gdx.graphics.getWidth();
-        float screenHeight = Gdx.graphics.getHeight();
+        float screenWidth = GameLayout.WINDOW_WIDTH;
+        float screenHeight = GameLayout.WINDOW_HEIGHT;
 
         float barWidth = 220f;
         float barHeight = 18f;
@@ -83,12 +90,13 @@ public class HudRenderer {
         float fuelY = screenHeight - 75f;
 
         // ---- LOKALNI IGRAC (levo) ----
-        float localX = 20f;
+        float localX = (GameLayout.SIDE_PANEL_WIDTH - barWidth) / 2f;
         drawBar(localX, healthY, barWidth, barHeight, localHealth, localMaxHealth, Color.RED);
         drawBar(localX, fuelY, barWidth, barHeight, localFuel, localMaxFuel, Color.CYAN);
 
         // ---- PROTIVNIK (desno, mirror) ----
-        float opponentX = screenWidth - barWidth - 20f;
+        float opponentX = screenWidth - GameLayout.SIDE_PANEL_WIDTH
+                + (GameLayout.SIDE_PANEL_WIDTH - barWidth) / 2f;
         if (opponentPresent) {
             drawBar(opponentX, healthY, barWidth, barHeight, opponentHealth, opponentMaxHealth, Color.RED);
             drawBar(opponentX, fuelY, barWidth, barHeight, opponentFuel, opponentMaxFuel, Color.CYAN);

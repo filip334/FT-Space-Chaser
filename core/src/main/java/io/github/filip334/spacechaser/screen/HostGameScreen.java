@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.filip334.spacechaser.server.GameServer;
+import io.github.filip334.spacechaser.SpaceChaserGame;
 import io.github.filip334.spacechaser.world.LanHostAdvertiser;
 import io.github.filip334.spacechaser.world.MultiplayerClient;
 
@@ -34,12 +35,14 @@ public class HostGameScreen implements Screen {
     private boolean started = false;
     private boolean leftScreen = false;
     private float dots = 0f;
+    private final String hostName;
 
     public HostGameScreen(Game game) {
         this.game = game;
         batch = new SpriteBatch();
         font = new BitmapFont();
         font.getData().setScale(2f);
+        hostName = ((SpaceChaserGame) game).getSettings().getPlayerName();
     }
 
     @Override
@@ -58,10 +61,10 @@ public class HostGameScreen implements Screen {
 
         int port = server.getPort();
 
-        advertiser = new LanHostAdvertiser(port, resolveHostName());
+        advertiser = new LanHostAdvertiser(port, hostName, "2 Players vs AI");
         advertiser.start();
 
-        client = new MultiplayerClient();
+        client = new MultiplayerClient(hostName);
         boolean connected = client.connect("127.0.0.1", port);
 
         if (connected) {
@@ -82,14 +85,10 @@ public class HostGameScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
         ScreenUtils.clear(Color.BLACK);
 
         if (leftScreen) return;
-
-        if (started && server.getConnectedPlayerCount() >= MAX_PLAYERS) {
-            proceedToGame();
-            return;
-        }
 
         dots += delta;
 
@@ -111,11 +110,12 @@ public class HostGameScreen implements Screen {
         StringBuilder suffix = new StringBuilder();
         for (int i = 0; i < dotCount; i++) suffix.append(".");
 
-        String line1 = "Waiting for opponent" + suffix;
+        String line1 = "LOBBY - 2 Players vs AI (PvP locked)";
         String line2 = server != null
-                ? "(" + server.getConnectedPlayerCount() + "/" + MAX_PLAYERS + " connected)"
+                ? "Host: " + hostName + " | Guest: " + server.getGuestName()
                 : "";
-        String line3 = "Press ESC to cancel";
+        String line3 = server != null && server.getConnectedPlayerCount() >= MAX_PLAYERS
+                ? "Press ENTER to start game" : "Waiting for opponent" + suffix;
 
         batch.begin();
 
@@ -132,6 +132,12 @@ public class HostGameScreen implements Screen {
     }
 
     private void handleInput() {
+        if (started && server.getConnectedPlayerCount() >= MAX_PLAYERS
+                && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            server.startGame();
+            proceedToGame();
+            return;
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             cancelAndGoBack();
         }

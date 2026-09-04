@@ -56,6 +56,8 @@ public class ClientHandler implements Runnable {
                     PlayerInputMessage input = (PlayerInputMessage) received;
                     input.playerId = playerId; // ne veruj klijentu, sam upisi ID
                     server.onPlayerInput(input);
+                } else if (received instanceof JoinLobbyMessage) {
+                    server.onPlayerNamed(playerId, ((JoinLobbyMessage) received).playerName);
                 }
             }
         } catch (EOFException | SocketException e) {

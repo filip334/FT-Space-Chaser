@@ -18,14 +18,16 @@ public class LanHostAdvertiser {
 
     private final int gamePort;
     private final String hostName;
+    private final String gameMode;
 
     private DatagramSocket socket;
     private volatile boolean running = false;
     private Thread listenThread;
 
-    public LanHostAdvertiser(int gamePort, String hostName) {
+    public LanHostAdvertiser(int gamePort, String hostName, String gameMode) {
         this.gamePort = gamePort;
         this.hostName = hostName;
+        this.gameMode = gameMode;
     }
 
     public void start() {
@@ -55,7 +57,7 @@ public class LanHostAdvertiser {
                 String message = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8);
                 if (!DISCOVER_REQUEST.equals(message)) continue;
 
-                String response = RESPONSE_PREFIX + "|" + hostName + "|" + gamePort;
+                String response = RESPONSE_PREFIX + "|" + hostName + "|" + gameMode + "|" + gamePort;
                 byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
 
                 DatagramPacket responsePacket = new DatagramPacket(

@@ -10,6 +10,7 @@ public class GameStateSnapshot extends NetworkMessage {
     public List<EntityState> enemies = new ArrayList<>();
     public List<EntityState> bullets = new ArrayList<>();
     public List<EntityState> walls = new ArrayList<>();
+    public List<EntityState> coins = new ArrayList<>();
 
     public int score;
     public float gameTime;

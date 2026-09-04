@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.filip334.spacechaser.world.LanGameDiscovery;
 import io.github.filip334.spacechaser.world.MultiplayerClient;
+import io.github.filip334.spacechaser.SpaceChaserGame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +63,7 @@ public class JoinGameScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
         ScreenUtils.clear(Color.BLACK);
 
         float width = Gdx.graphics.getWidth();
@@ -84,7 +86,7 @@ public class JoinGameScreen implements Screen {
             boolean hovered = isMouseOver(bounds);
 
             font.setColor(hovered ? Color.CYAN : Color.WHITE);
-            font.draw(batch, host.hostName + "   (" + host.address + ":" + host.port + ")", 60f, rowY);
+            font.draw(batch, host.hostName + " - " + host.gameMode + "   (" + host.address + ":" + host.port + ")", 60f, rowY);
 
             rowBounds.add(bounds);
             rowY -= rowHeight + 10f;
@@ -141,12 +143,12 @@ public class JoinGameScreen implements Screen {
         connecting = true;
 
         Thread connectThread = new Thread(() -> {
-            MultiplayerClient client = new MultiplayerClient();
+            MultiplayerClient client = new MultiplayerClient(((SpaceChaserGame) game).getSettings().getPlayerName());
             boolean connected = client.connect(host.address, host.port);
 
             Gdx.app.postRunnable(() -> {
                 if (connected) {
-                    game.setScreen(new GameScreen(game, client));
+                    game.setScreen(new ClientLobbyScreen(game, client));
                 } else {
                     connecting = false;
                     System.out.println("Ne mogu da se konektujem na " + host.address + ":" + host.port);

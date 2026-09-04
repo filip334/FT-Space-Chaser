@@ -1,6 +1,5 @@
 package io.github.filip334.spacechaser.entity;
 
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
 
 public class Bullet extends Entity {
@@ -8,6 +7,8 @@ public class Bullet extends Entity {
     private float dirX;
     private float dirY;
 
+    public final float DAMAGE = 33f;
+    
     // ---------------- CONSTRUCTOR ----------------
     
     public Bullet() {
@@ -35,16 +36,6 @@ public class Bullet extends Entity {
         hitbox = new CompoundHitbox();
         hitbox.addBox(6, 0, 16, 4);
         hitbox.update(this.x, this.y, this.rotation);
-    }
-    
-    // GET / SET
-
-    public float getPreviousX() {
-        return previousX;
-    }
-
-    public float getPreviousY() {
-        return previousY;
     }
     
     // UPDATE / RENDER
