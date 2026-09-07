@@ -3,12 +3,16 @@ package io.github.filip334.spacechaser.entity;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
 
 public class Bullet extends Entity {
-    // 
+    //
     private float dirX;
     private float dirY;
 
     public final float DAMAGE = 33f;
-    
+
+    // ID igraca koji je ispalio metak - koristi CollisionSystem da ubistvu
+    // pripise poene pravom igracu (ne "prvom u redu" po Map iteraciji).
+    private int ownerId = -1;
+
     // ---------------- CONSTRUCTOR ----------------
     
     public Bullet() {
@@ -55,5 +59,13 @@ public class Bullet extends Entity {
         this.y = y;
         this.rotation = rotation;
         hitbox.update(x, y, rotation);
+    }
+
+    public int getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(int ownerId) {
+        this.ownerId = ownerId;
     }
 }

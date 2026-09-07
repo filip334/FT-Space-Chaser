@@ -1,6 +1,5 @@
 package io.github.filip334.spacechaser.entity;
 
-import com.badlogic.gdx.math.Vector2;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
 import io.github.filip334.spacechaser.component.FuelComponent;
 import io.github.filip334.spacechaser.component.HealthComponent;
@@ -8,20 +7,18 @@ import io.github.filip334.spacechaser.input.InputManager;
 import io.github.filip334.spacechaser.world.GameSettings;
 
 public class Player extends Entity{
-    
-    // INPUT 
-    //PlayerInput input = new PlayerInput();
+
+    // INPUT
     private final InputManager input;
-    
+
     //
     FuelComponent fuel;
-    
+
+    // Sopstveni skor ovog igraca (multiplayer - svaki igrac vodi svoj).
+    private int score = 0;
+
 
     // ---------------- CONSTRUCTOR ----------------
-    
-    public Player() {
-        input = new InputManager(new GameSettings());
-    }
 
     public Player(float x, float y) {
         this(x, y, new GameSettings(), true);
@@ -35,7 +32,7 @@ public class Player extends Entity{
         this.maxSpeed = 1500f;
         this.acceleration = 550f;
         this.boostAcceleration = 950f;
-        this.rotationSpeed = 160f;
+        this.rotationSpeed = 110f;
         
         this.health = new HealthComponent(100);
         fuel = new FuelComponent(100);
@@ -46,17 +43,6 @@ public class Player extends Entity{
         createHitbox();
     }
     
-    // INPUT MOVEMENT
-    /*private void readInput() {
-
-        input.left = Gdx.input.isKeyPressed(Input.Keys.A);
-        input.right = Gdx.input.isKeyPressed(Input.Keys.D);
-        input.forward = Gdx.input.isKeyPressed(Input.Keys.W) && fuel.hasFuel();
-        input.backward = Gdx.input.isKeyPressed(Input.Keys.S);
-        input.boost = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && fuel.hasFuel();
-        input.shoot = Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
-        
-    }*/
     private void handleMovement(float delta) {
 
         previousX = x;
@@ -110,17 +96,9 @@ public class Player extends Entity{
     private void createHitbox() {
         hitbox = new CompoundHitbox();
         // CENTAR
-        hitbox.addBox(-8f, 0f, 46f, 19f);
-        // FRONT
-        hitbox.addBox(23f, 0f, 12f, 17f);
-        // LEFT WING
-        hitbox.addBox(-6f, 22f, 17f, 27f);
-        // RIGHT WING
-        hitbox.addBox(-6f, -22f, 17f, 27f);
-        // LEFT ENGINE
-        hitbox.addBox(-26f, 18f, 17f, 10f);
-        // RIGHT ENGINE
-        hitbox.addBox(-26f, -18f, 17f, 10f);
+        hitbox.addBox(0f, 0f, 50f, 20f);
+        // WINGS
+        hitbox.addBox(-5f, 0f, 15f, 50f);
     }
     
     // GET / SET
@@ -146,55 +124,28 @@ public class Player extends Entity{
     public void setNetworkFuel(float fuel) {
         this.fuel.setFuel(fuel);
     }
-    
+
+        // SCORE
+    public int getScore() {
+        return score;
+    }
+    public void addScore(int amount) {
+        score += amount;
+    }
+    public void setNetworkScore(int score) {
+        this.score = score;
+    }
+
         // VELOCITY
     public void setVelocity(float velocityX, float velocityY) {
         this.velocityX = velocityX;
         this.velocityY = velocityY;
     }
     
-        // POSITION
-    public Vector2 getPosition() {
-        return new Vector2(x, y);
-    }
-    
-        // RESTORE
-    public void restorePreviousX() {
-        this.x = previousX;
-        updateTransform();
-    }
-    public void restorePreviousY() {
-        this.y = previousY;
-        updateTransform();
-    }
-    public void restorePreviousPosition() {
-        this.x = previousX;
-        this.y = previousY;
-        updateTransform();
-    }
-    public void restorePreviousRotation() {
-        rotation = previousRotation;
-        updateTransform();
-    }
-    public void restorePreviousState(){
-        x = previousX;
-        y = previousY;
-        rotation = previousRotation;
-
-        updateTransform();
-    }
-
-        //
     private void updateTransform() {
         hitbox.update(x, y, rotation);
     }
-    
-    public void savePreviousState() {
-        previousX = x;
-        previousY = y;
-        previousRotation = rotation;
-    }
-    
+
         // INPUT
     public boolean wantsToShoot(){
         return input.shoot();
@@ -211,23 +162,54 @@ public class Player extends Entity{
     public void setNetworkThrusting(boolean thrusting) {
         input.setForward(thrusting);
     }
-    public void setNetworkState(float x,float y,float rotation){
-        this.x = x;
-        this.y = y;
-        this.rotation = rotation;
+    // ---------------- MULTIPLAYER INTERPOLACIJA ----------------
+    // Server salje snapshotove preko mreze i do 60x/sec, ali mogu da stignu
+    // neravnomerno (jitter, TCP zastoji) - narocito primetno kod igraca koji
+    // se pridruzio (guest), za razliku od hosta koji sa svojim serverom
+    // "razgovara" preko loopback-a. Umesto da svaki primljeni paket odmah
+    // trzajno postavi poziciju, cuvamo ga kao cilj (net*) i svakog render
+    // frejma se samo priblizavamo tom cilju - vidljivo kretanje ostaje glatko
+    // cak i kad paketi kasne ili stignu u grupi.
+    private boolean netInitialized;
+    private float netTargetX, netTargetY, netTargetRotation;
+    private static final float NET_SMOOTHING_RATE = 18f;
 
+    public void setNetworkState(float x, float y, float rotation) {
+        netTargetX = x;
+        netTargetY = y;
+        netTargetRotation = rotation;
+
+        if (!netInitialized) {
+            // Prvi paket za ovog igraca - nema smisla interpolirati od (0,0),
+            // odmah skoci na stvarnu pocetnu poziciju/rotaciju.
+            this.x = x;
+            this.y = y;
+            this.rotation = rotation;
+            netInitialized = true;
+            updateTransform();
+        }
+    }
+
+    /** Poziva se svakog render frejma iz MultiplayerGameWorld.update(delta). */
+    public void interpolateNetworkState(float delta) {
+        if (!netInitialized) return;
+
+        float t = 1f - (float) Math.exp(-NET_SMOOTHING_RATE * delta);
+        x += (netTargetX - x) * t;
+        y += (netTargetY - y) * t;
+        rotation += shortestAngleDelta(rotation, netTargetRotation) * t;
         updateTransform();
     }
-    /**
-     * Za mrezno ogledalo (MultiplayerGameWorld) - server salje da li je
-     * igrac trenutno pod thrust-om, klijent to primenjuje da bi animacija
-     * i za protivnika (i za sopstveni brod u multiplayeru) radila ispravno.
-     * @param delta
-     */
-    
-    
+
+    private static float shortestAngleDelta(float from, float to) {
+        float diff = (to - from) % 360f;
+        if (diff < -180f) diff += 360f;
+        if (diff > 180f) diff -= 360f;
+        return diff;
+    }
+
     // UPDATE / RENDER / DISPOSE
-    
+
     @Override
     public void update(float delta) {
         if (isDead) {
@@ -259,26 +241,3 @@ public class Player extends Entity{
     
 }
 
-
-/*
-hitbox = new CompoundHitbox();
-
-        // CENTAR
-        hitbox.addBox(-2.5f, 0, 18.75f, 6.25f);
-
-        // FRONT
-        hitbox.addBox(9.5f, 0, 6.25f, 3.5f);
-
-        // LEFT WING
-        hitbox.addBox(-5f, 7, 3.75f, 10.5f);
-
-        // RIGHT WING
-        hitbox.addBox(-5f, -7, 3.75f, 10.5f);
-
-        // LEFT ENGINE
-        hitbox.addBox(-7.5f, 4.5f, 10, 2.5f);
-
-        // RIGHT ENGINE
-        hitbox.addBox(-7.5f, -4.5f, 10, 2.5f);
-
-*/

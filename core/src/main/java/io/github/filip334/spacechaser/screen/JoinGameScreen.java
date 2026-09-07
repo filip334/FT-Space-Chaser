@@ -2,15 +2,15 @@ package io.github.filip334.spacechaser.screen;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.filip334.spacechaser.world.LanGameDiscovery;
 import io.github.filip334.spacechaser.world.MultiplayerClient;
 import io.github.filip334.spacechaser.SpaceChaserGame;
+import io.github.filip334.spacechaser.ui.Buttons;
+import io.github.filip334.spacechaser.ui.Fonts;
+import io.github.filip334.spacechaser.ui.Theme;
+import io.github.filip334.spacechaser.ui.UiPanel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,10 +20,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Prikazuje listu trenutno otvorenih hostovanih igara na LAN mrezi
  * (pronadjenih preko LanGameDiscovery) i omogucava klik za konekciju.
  */
-public class JoinGameScreen implements Screen {
+public class JoinGameScreen extends BaseScreen {
 
-    private final Game game;
-    private final SpriteBatch batch;
+    private final BitmapFont titleFont;
     private final BitmapFont font;
 
     private final List<LanGameDiscovery.DiscoveredHost> hosts = new CopyOnWriteArrayList<>();
@@ -35,14 +34,14 @@ public class JoinGameScreen implements Screen {
     private boolean connecting = false;
 
     public JoinGameScreen(Game game) {
-        this.game = game;
-        batch = new SpriteBatch();
-        font = new BitmapFont();
-        font.getData().setScale(1.6f);
+        super(game);
+        titleFont = Fonts.generate(30, Theme.WHITE);
+        font = Fonts.generate(18, Theme.WHITE);
     }
 
     @Override
     public void show() {
+        super.show();
         startScan();
     }
 
@@ -63,47 +62,58 @@ public class JoinGameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
-        ScreenUtils.clear(Color.BLACK);
+        beginFrame();
 
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
 
+        drawBackground(width, height);
+
         rowBounds.clear();
-        float rowY = height - 140f;
-        float rowHeight = 45f;
+        float rowY = height - 150f;
+        float rowHeight = 50f;
 
         batch.begin();
-
-        font.setColor(Color.WHITE);
-        font.draw(batch, "JOIN GAME", 40f, height - 40f);
+        titleFont.setColor(Theme.WHITE);
+        titleFont.draw(batch, "JOIN GAME", 40f, height - 40f);
 
         String status = scanning ? "Scanning..." : (hosts.isEmpty() ? "No games found" : hosts.size() + " game(s) found");
-        font.draw(batch, status, 40f, height - 80f);
+        font.setColor(Theme.CYAN);
+        font.draw(batch, status, 40f, height - 90f);
+        batch.end();
 
         for (LanGameDiscovery.DiscoveredHost host : hosts) {
             Rectangle bounds = new Rectangle(40f, rowY - rowHeight, width - 80f, rowHeight);
             boolean hovered = isMouseOver(bounds);
 
-            font.setColor(hovered ? Color.CYAN : Color.WHITE);
-            font.draw(batch, host.hostName + " - " + host.gameMode + "   (" + host.address + ":" + host.port + ")", 60f, rowY);
+            UiPanel.draw(shapeRenderer, bounds.x, bounds.y, bounds.width, bounds.height, hovered);
+
+            batch.begin();
+            font.setColor(hovered ? Theme.WHITE : Theme.CYAN);
+            font.draw(batch, host.hostName + " - " + host.gameMode + "   (" + host.address + ":" + host.port + ")",
+                    bounds.x + 16f, rowY - rowHeight / 2f + 8f);
+            batch.end();
 
             rowBounds.add(bounds);
-            rowY -= rowHeight + 10f;
+            rowY -= rowHeight + 14f;
         }
 
-        font.setColor(Color.WHITE);
-        font.draw(batch, "Refresh", 40f, 80f);
-        font.draw(batch, "Back", 40f, 40f);
+        // Back je "izlazna" akcija - veci razmak od Refresh nego sto bi ga
+        // odvajao od bilo kog drugog susednog dugmeta.
+        float refreshWidth = 130f;
+        float backExtraGap = 70f;
+        refreshButton.set(40f, 70f, refreshWidth, 44f);
+        backButton.set(40f + refreshWidth + backExtraGap, 70f, 110f, 44f);
+
+        Buttons.draw(batch, shapeRenderer, font, refreshButton, "Refresh", isMouseOver(refreshButton));
+        Buttons.draw(batch, shapeRenderer, font, backButton, "Back", isMouseOver(backButton));
 
         if (connecting) {
+            batch.begin();
+            font.setColor(Theme.WHITE);
             font.draw(batch, "Connecting...", width / 2f - 60f, height / 2f);
+            batch.end();
         }
-
-        batch.end();
-
-        refreshButton.set(40f, 60f, 100f, 30f);
-        backButton.set(40f, 20f, 100f, 30f);
 
         handleInput();
     }
@@ -121,7 +131,7 @@ public class JoinGameScreen implements Screen {
         }
 
         if (backButton.contains(mouseX, mouseY)) {
-            game.setScreen(new MultiplayerScreen(game));
+            navigateTo(new MultiplayerScreen(game));
             return;
         }
 
@@ -133,12 +143,6 @@ public class JoinGameScreen implements Screen {
         }
     }
 
-    private boolean isMouseOver(Rectangle bounds) {
-        float mouseX = Gdx.input.getX();
-        float mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
-        return bounds.contains(mouseX, mouseY);
-    }
-
     private void connectTo(LanGameDiscovery.DiscoveredHost host) {
         connecting = true;
 
@@ -148,7 +152,7 @@ public class JoinGameScreen implements Screen {
 
             Gdx.app.postRunnable(() -> {
                 if (connected) {
-                    game.setScreen(new ClientLobbyScreen(game, client));
+                    navigateTo(new ClientLobbyScreen(game, client));
                 } else {
                     connecting = false;
                     System.out.println("Ne mogu da se konektujem na " + host.address + ":" + host.port);
@@ -160,24 +164,9 @@ public class JoinGameScreen implements Screen {
     }
 
     @Override
-    public void resize(int width, int height) {
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public void hide() {
-    }
-
-    @Override
     public void dispose() {
-        batch.dispose();
+        super.dispose();
+        titleFont.dispose();
         font.dispose();
     }
 }

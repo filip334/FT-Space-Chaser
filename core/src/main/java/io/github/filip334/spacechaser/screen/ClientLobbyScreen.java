@@ -3,30 +3,36 @@ package io.github.filip334.spacechaser.screen;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.math.Rectangle;
 import io.github.filip334.spacechaser.server.LobbyStatusMessage;
+import io.github.filip334.spacechaser.ui.Buttons;
+import io.github.filip334.spacechaser.ui.Fonts;
+import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.world.MultiplayerClient;
 
 /** Lobby koji gost vidi nakon konekcije, dok host ne pokrene partiju. */
-public class ClientLobbyScreen implements Screen {
-    private final Game game;
+public class ClientLobbyScreen extends BaseScreen {
+
     private final MultiplayerClient client;
-    private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont font = new BitmapFont();
+    private final BitmapFont titleFont;
+    private final BitmapFont font;
 
     private volatile String hostName = "Host";
     private volatile String gameMode = "2 Players vs AI";
     private volatile boolean gameStarted;
+    private volatile boolean countingDown;
+    private volatile float countdownRemaining;
+
+    private final Rectangle leaveButton = new Rectangle();
+    private static final float CORNER_MARGIN = 30f;
 
     public ClientLobbyScreen(Game game, MultiplayerClient client) {
-        this.game = game;
+        super(game);
         this.client = client;
-        font.getData().setScale(2f);
+        titleFont = Fonts.generate(34, Theme.WHITE);
+        font = Fonts.generate(20, Theme.WHITE);
         client.setOnLobbyStatus(this::applyLobbyStatus);
     }
 
@@ -34,50 +40,75 @@ public class ClientLobbyScreen implements Screen {
         hostName = status.hostName;
         gameMode = status.gameMode;
         gameStarted = status.gameStarted;
+        countingDown = status.countingDown;
+        countdownRemaining = status.countdownRemaining;
     }
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
-        ScreenUtils.clear(Color.BLACK);
+        beginFrame();
         if (gameStarted) {
-            game.setScreen(new GameScreen(game, client));
+            // navigateTo() ce pozvati dispose() koji dira SAMO GL resurse ovog
+            // ekrana - client ostaje ziv, prosledjen je u GameScreen.
+            navigateTo(new GameScreen(game, client));
             return;
         }
 
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
+
+        drawBackground(width, height);
+
         String title = "LOBBY";
         String mode = "Mode: " + gameMode + " (PvP locked)";
         String host = "Host: " + hostName;
-        String waiting = "Waiting for host to start the game...";
-        String cancel = "Press ESC to leave";
+        String status = countingDown
+                ? "Starting in " + (int) Math.ceil(countdownRemaining) + "..."
+                : "Waiting for host to start the game...";
 
         batch.begin();
-        font.setColor(Color.WHITE);
-        drawCentered(title, width, height / 2f + 100f);
-        font.getData().setScale(1.3f);
-        drawCentered(mode, width, height / 2f + 35f);
-        drawCentered(host, width, height / 2f - 5f);
-        drawCentered(waiting, width, height / 2f - 70f);
-        drawCentered(cancel, width, height / 2f - 120f);
+        titleFont.setColor(Theme.WHITE);
+        drawCentered(titleFont, title, width, height / 2f + 100f);
+
+        font.setColor(Theme.CYAN);
+        drawCentered(font, mode, width, height / 2f + 35f);
+        drawCentered(font, host, width, height / 2f - 5f);
+        font.setColor(countingDown ? Theme.CYAN : Theme.WHITE);
+        drawCentered(font, status, width, height / 2f - 70f);
         batch.end();
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        drawLeaveButton();
+        handleInput();
+    }
+
+    private void drawCentered(BitmapFont f, String text, float width, float y) {
+        GlyphLayout layout = new GlyphLayout(f, text);
+        f.draw(batch, text, width / 2f - layout.width / 2f, y);
+    }
+
+    private void drawLeaveButton() {
+        String label = "Leave Match";
+        GlyphLayout layout = new GlyphLayout(font, label);
+        float w = layout.width + 60f;
+        float h = layout.height + 36f;
+        leaveButton.set(CORNER_MARGIN, CORNER_MARGIN, w, h);
+
+        boolean hovered = isMouseOver(leaveButton);
+        Buttons.draw(batch, shapeRenderer, font, leaveButton, label, hovered);
+    }
+
+    private void handleInput() {
+        if ((Gdx.input.justTouched() && isMouseOver(leaveButton))
+                || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             client.disconnect();
-            game.setScreen(new MultiplayerScreen(game));
+            navigateTo(new MultiplayerScreen(game));
         }
     }
 
-    private void drawCentered(String text, float width, float y) {
-        GlyphLayout layout = new GlyphLayout(font, text);
-        font.draw(batch, text, width / 2f - layout.width / 2f, y);
+    @Override
+    public void dispose() {
+        super.dispose();
+        titleFont.dispose();
+        font.dispose();
     }
-
-    @Override public void show() { }
-    @Override public void resize(int width, int height) { }
-    @Override public void pause() { }
-    @Override public void resume() { }
-    @Override public void hide() { }
-    @Override public void dispose() { batch.dispose(); font.dispose(); }
 }

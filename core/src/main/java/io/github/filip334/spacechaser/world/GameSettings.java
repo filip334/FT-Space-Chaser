@@ -3,15 +3,32 @@ package io.github.filip334.spacechaser.world;
 import com.badlogic.gdx.Input;
 
 public class GameSettings {
+    private static final int DEFAULT_MOVE_UP = Input.Keys.W;
+    private static final int DEFAULT_MOVE_DOWN = Input.Keys.S;
+    private static final int DEFAULT_MOVE_LEFT = Input.Keys.A;
+    private static final int DEFAULT_MOVE_RIGHT = Input.Keys.D;
+    private static final int DEFAULT_SHOOT = Input.Keys.SPACE;
+    private static final int DEFAULT_BOOST = Input.Keys.SHIFT_LEFT;
+
     private String playerName = "Player";
-    private int moveUp = Input.Keys.W;
-    private int moveDown = Input.Keys.S;
-    private int moveLeft = Input.Keys.A;
-    private int moveRight = Input.Keys.D;
-    private int shoot = Input.Keys.SPACE;
-    private int boost = Input.Keys.SHIFT_LEFT;
+    private int moveUp = DEFAULT_MOVE_UP;
+    private int moveDown = DEFAULT_MOVE_DOWN;
+    private int moveLeft = DEFAULT_MOVE_LEFT;
+    private int moveRight = DEFAULT_MOVE_RIGHT;
+    private int shoot = DEFAULT_SHOOT;
+    private int boost = DEFAULT_BOOST;
 
     public GameSettings() {
+    }
+
+    /** Vraca samo kontrole na podrazumevane (W/S/A/D, Space, Left Shift) - ime igraca ostaje nepromenjeno. */
+    public void resetControlsToDefault() {
+        moveUp = DEFAULT_MOVE_UP;
+        moveDown = DEFAULT_MOVE_DOWN;
+        moveLeft = DEFAULT_MOVE_LEFT;
+        moveRight = DEFAULT_MOVE_RIGHT;
+        shoot = DEFAULT_SHOOT;
+        boost = DEFAULT_BOOST;
     }
 
     public int getMoveUp() {

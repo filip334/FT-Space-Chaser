@@ -26,8 +26,4 @@ public class StateMachine {
             currentState.update(enemy, delta);
         }
     }
-
-    public EnemyState getCurrentState() {
-        return currentState;
-    }
 }

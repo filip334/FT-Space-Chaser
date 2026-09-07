@@ -132,32 +132,8 @@ public class AnimationController {
 
     // ---------------- CONTROL ----------------
 
-    public void playForward(String state) {
-        setState(state);
-        setPlayMode(PlayMode.NORMAL);
-    }
-
     public void playLoop(String state) {
         setState(state);
         setPlayMode(PlayMode.LOOP);
-    }
-
-    public void playReverse(String state) {
-        setState(state);
-        setPlayMode(PlayMode.REVERSED);
-    }
-
-    public void playLoopReverse(String state) {
-        setState(state);
-        setPlayMode(PlayMode.LOOP_REVERSED);
-    }
-
-    public void reset() {
-        if (currentState == null) return;
-        animations.get(currentState).time = 0f;
-    }
-
-    public String getCurrentState() {
-        return currentState;
     }
 }

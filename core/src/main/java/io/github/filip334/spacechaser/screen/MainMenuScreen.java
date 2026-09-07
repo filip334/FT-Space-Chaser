@@ -4,78 +4,66 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.ScreenUtils;
-import io.github.filip334.spacechaser.world.MultiplayerClient;
 import io.github.filip334.spacechaser.SpaceChaserGame;
+import io.github.filip334.spacechaser.ui.Buttons;
+import io.github.filip334.spacechaser.ui.ChaseArt;
+import io.github.filip334.spacechaser.ui.Fonts;
+import io.github.filip334.spacechaser.ui.Theme;
+import io.github.filip334.spacechaser.world.HighScoreManager;
 
-public class MainMenuScreen implements Screen {
+public class MainMenuScreen extends BaseScreen {
 
-    private final Game game;
-    
-    private final SpriteBatch batch;
-    private final ShapeRenderer shapeRenderer;
-    private final BitmapFont font;
+    private final BitmapFont titleFont;
+    private final BitmapFont menuFont;
+    private final BitmapFont smallFont;
 
-    private Texture backgroundGradient;
-    
     private Texture shipTexture;
+    private Texture enemyTexture;
+    private Texture engineFireTexture;
     private final String statusMessage;
+    private float statusMessageAge = 0f;
+    private static final float STATUS_MESSAGE_DURATION = 10f;
 
-    // Menu opcije
     private final String[] menuItems = {
-        "Singleplayer",
-        "Multiplayer",
-        "Settings",
-        "Exit"
+            "SINGLEPLAYER",
+            "MULTIPLAYER",
+            "SETTINGS",
+            "EXIT"
     };
 
+    private static final float BUTTON_WIDTH = 300f;
+    private static final float BUTTON_HEIGHT = 58f;
+    private static final float BUTTON_SPACING = 30f;
+    private static final float EXIT_EXTRA_GAP = 55f;
+    private static final float CORNER_MARGIN = 30f;
+
     private final Rectangle[] menuBounds;
-    private final Rectangle nameBox = new Rectangle();
+    private final Rectangle pilotBox = new Rectangle();
     private boolean editingName;
     private String nameDraft;
-
-    // Boje
-    private final Color cyan = new Color(0.0f, 0.95f, 1.0f, 1.0f);
-    private final Color darkCyan = new Color(0.0f, 0.25f, 0.28f, 1.0f);
-    private final Color white = new Color(1f, 1f, 1f, 1f);
-
-    // Animacija glow-a
-    private float time = 0f;
 
     public MainMenuScreen(Game game) {
         this(game, null);
     }
 
     public MainMenuScreen(Game game, String statusMessage) {
-
-        this.game = game;
+        super(game);
         this.statusMessage = statusMessage;
-        
-        batch = new SpriteBatch();
-        shapeRenderer = new ShapeRenderer();
-        font = new BitmapFont();
 
-        backgroundGradient = createGradientTexture();
-        
-        /*
-         * Ovde stavi svoj spaceship.
-         *
-         * npr:
-         * assets/ship.png
-         */
-        shipTexture = new Texture(Gdx.files.internal("Original/ship.png"));
+        titleFont = Fonts.generate(50, Theme.WHITE);
+        menuFont = Fonts.generate(24, Theme.WHITE);
+        smallFont = Fonts.generate(18, Theme.WHITE);
+
+        shipTexture = new Texture(Gdx.files.internal("MenuAssets/shipBackground1.png"));
+        enemyTexture = new Texture(Gdx.files.internal("MenuAssets/enemy.png"));
+        engineFireTexture = new Texture(Gdx.files.internal("MenuAssets/engineFireMainMenu.png"));
 
         menuBounds = new Rectangle[menuItems.length];
-
         for (int i = 0; i < menuBounds.length; i++) {
             menuBounds[i] = new Rectangle();
         }
@@ -84,164 +72,23 @@ public class MainMenuScreen implements Screen {
     }
 
     @Override
-    public void show() {
-        updateScreenProjection(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    }
-
-    @Override
     public void render(float delta) {
-
-        resetFullWindowViewport();
-
-        time += delta;
+        beginFrame();
 
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
 
-        ScreenUtils.clear(Color.BLACK);
+        statusMessageAge += delta;
 
         drawBackground(width, height);
         drawTitle(width, height);
+        drawEnemy(width, height);
         drawShip(width, height);
         drawMenu(width, height);
-        drawNameBox(width, height);
+        drawPilot(width, height);
         drawStatusMessage(width, height);
 
         handleInput(width, height);
-    }
-
-    private void drawStatusMessage(float width, float height) {
-        if (statusMessage == null || statusMessage.isEmpty()) return;
-
-        batch.begin();
-        font.getData().setScale(1.2f);
-        font.setColor(cyan);
-        GlyphLayout layout = new GlyphLayout(font, statusMessage);
-        font.draw(batch, statusMessage, width * 0.075f, height * 0.08f + layout.height);
-        batch.end();
-    }
-
-    private void resetFullWindowViewport() {
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
-    }
-
-    /**
-     * SpriteBatch i ShapeRenderer ne menjaju automatski projekciju kada se
-     * prozor promeni. Bez ovoga se meni crta u koordinatama prethodne veličine
-     * prozora, pa ostane prazan/crn deo ekrana dok se ne otvori drugi ekran.
-     */
-    private void updateScreenProjection(int width, int height) {
-        batch.getProjectionMatrix().setToOrtho2D(0f, 0f, width, height);
-        shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
-    }
-
-    private void drawNameBox(float width, float height) {
-        float x = width * 0.075f;
-        float y = height * 0.74f;
-        nameBox.set(x, y, width * 0.28f, 46f);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(cyan);
-        shapeRenderer.rect(nameBox.x, nameBox.y, nameBox.width, nameBox.height);
-        shapeRenderer.end();
-        batch.begin();
-        font.getData().setScale(1.2f);
-        font.setColor(white);
-        String displayedName = editingName ? nameDraft + "|" : nameDraft;
-        font.draw(batch, "Name: " + displayedName, x + 12f, y + 30f);
-        batch.end();
-    }
-
-    private Texture createGradientTexture() {
-
-        int width = 1024;
-        int height = 1;
-
-        Pixmap pixmap = new Pixmap(
-            width,
-            height,
-            Pixmap.Format.RGBA8888
-        );
-
-        Color left = new Color(
-            0.005f,
-            0.005f,
-            0.005f,
-            1f
-        );
-
-        Color middle = new Color(
-            0.0f,
-            0.15f,
-            0.17f,
-            1f
-        );
-
-        Color right = new Color(
-            0.0f,
-            0.95f,
-            1.0f,
-            1f
-        );
-
-        for (int x = 0; x < width; x++) {
-
-            float t = x / (float)(width - 1);
-
-            Color color;
-
-            if (t < 0.65f) {
-
-                float localT = t / 0.65f;
-
-                color = new Color(
-                    left
-                ).lerp(
-                    middle,
-                    localT
-                );
-
-            } else {
-
-                float localT = (t - 0.65f) / 0.35f;
-
-                color = new Color(
-                    middle
-                ).lerp(
-                    right,
-                    localT
-                );
-            }
-
-            pixmap.setColor(color);
-            pixmap.drawPixel(x, 0);
-        }
-
-        Texture texture = new Texture(pixmap);
-
-        pixmap.dispose();
-
-        return texture;
-    }
-    
-    // =========================================================
-    // BACKGROUND
-    // =========================================================
-
-    private void drawBackground(float width, float height) {
-
-        batch.begin();
-
-        batch.setColor(Color.WHITE);
-
-        batch.draw(
-            backgroundGradient,
-            0,
-            0,
-            width,
-            height
-        );
-
-        batch.end();
     }
 
     // =========================================================
@@ -249,110 +96,51 @@ public class MainMenuScreen implements Screen {
     // =========================================================
 
     private void drawTitle(float width, float height) {
+        String title = "FT - SPACE CHASER";
+        GlyphLayout layout = new GlyphLayout(titleFont, title);
+
+        float x = width / 2f - layout.width / 2f;
+        float y = height * 0.94f;
 
         batch.begin();
+        // blagi glow iza teksta - isti tekst iscrtan malo vece/providnije pozadi
+        titleFont.getData().setScale(1.04f);
+        titleFont.setColor(Theme.CYAN.r, Theme.CYAN.g, Theme.CYAN.b, 0.5f);
+        GlyphLayout glowLayout = new GlyphLayout(titleFont, title);
+        titleFont.draw(batch, title, width / 2f - glowLayout.width / 2f, y + 2f);
 
-        font.getData().setScale(3.0f);
-        font.setColor(white);
-
-        String title = "FT - SPACE CHASER";
-
-        GlyphLayout layout = new GlyphLayout(font, title);
-
-        float x = width * 0.035f;
-        float y = height * 0.91f;
-
-        font.draw(
-            batch,
-            layout,
-            x,
-            y
-        );
-
+        titleFont.getData().setScale(1f);
+        titleFont.setColor(Theme.WHITE);
+        titleFont.draw(batch, title, x, y);
         batch.end();
+
+        float underlineY = y - layout.height - 10f;
+        drawGlowLine(x, underlineY, layout.width, 3f);
     }
 
     // =========================================================
-    // SHIP
+    // SHIP / ENEMY
     // =========================================================
 
     private void drawShip(float width, float height) {
+        float shipHeight = height * 0.62f;
+        // Centrirano na sredini ekrana - slika vec ima svoj prirodan dijagonalan
+        // ugao, ne treba joj vise rotacija kao staroj Original/ship.png teksturi.
+        ChaseArt.drawShip(batch, shipTexture, engineFireTexture, width / 2f, height / 2f, shipHeight, 1f);
+    }
 
-        batch.begin();
+    /**
+     * Neprijatelj negde iza broda, okrenut u istom pravcu kretanja kao igrac -
+     * izgleda kao da ga juri. Manji je i dalje od centra (dublje u pozadini).
+     */
+    private void drawEnemy(float width, float height) {
+        float enemyHeight = height * 0.17f;
+        float chaseOffset = height * 0.53f; // malo vise ka gornjem desnom cosku
+        float rad = (float) Math.toRadians(ChaseArt.TRAIL_ANGLE_DEG);
+        float centerX = width / 2f + chaseOffset * (float) Math.cos(rad);
+        float centerY = height / 2f + chaseOffset * (float) Math.sin(rad);
 
-        /*
-         * Veličina broda zavisi od visine ekrana.
-         */
-        float shipHeight = height * 0.72f;
-
-        float ratio =
-            shipTexture.getWidth() /
-            (float) shipTexture.getHeight();
-
-        float shipWidth = shipHeight * ratio;
-
-        float x = width * 0.55f;
-        float y = height * 0.14f;
-
-        /*
-         * Blagi cyan glow iza broda.
-         *
-         * Ovde koristimo jednostavan alpha overlay.
-         */
-
-        batch.setColor(
-            0.0f,
-            0.9f,
-            1.0f,
-            0.10f
-        );
-
-        batch.draw(
-            shipTexture,
-            x,
-            y,
-            shipWidth / 2f,   // originX
-            shipHeight / 2f,  // originY
-            shipWidth,
-            shipHeight,
-            1f,
-            1f,
-            -90f,             // rotacija 90° udesno
-            0,
-            0,
-            shipTexture.getWidth(),
-            shipTexture.getHeight(),
-            false,
-            false
-        );
-
-        /*
-         * Pravi brod
-         */
-        batch.setColor(Color.WHITE);
-
-        batch.draw(
-            shipTexture,
-            x,
-            y,
-            shipWidth / 2f,   // originX
-            shipHeight / 2f,  // originY
-            shipWidth,
-            shipHeight,
-            1f,
-            1f,
-            -90f,             // rotacija 90° udesno
-            0,
-            0,
-            shipTexture.getWidth(),
-            shipTexture.getHeight(),
-            false,
-            false
-        );
-
-        batch.setColor(Color.WHITE);
-
-        batch.end();
+        ChaseArt.drawEnemy(batch, enemyTexture, engineFireTexture, centerX, centerY, enemyHeight, 0.85f);
     }
 
     // =========================================================
@@ -360,168 +148,69 @@ public class MainMenuScreen implements Screen {
     // =========================================================
 
     private void drawMenu(float width, float height) {
+        float startX = CORNER_MARGIN;
+        // Donji levi ugao - EXIT (poslednja stavka) je najnize, sa vecim
+        // razmakom od ostalih iznad njega.
+        float y = CORNER_MARGIN;
 
-        batch.begin();
+        for (int i = menuItems.length - 1; i >= 0; i--) {
+            menuBounds[i].set(startX, y, BUTTON_WIDTH, BUTTON_HEIGHT);
+            boolean hovered = isMouseOver(menuBounds[i]);
+            Buttons.draw(batch, shapeRenderer, menuFont, menuBounds[i], menuItems[i], hovered);
 
-        font.getData().setScale(1.8f);
-
-        float startX = width * 0.075f;
-
-        /*
-         * Prve tri opcije
-         */
-        float firstY = height * 0.66f;
-        float spacing = height * 0.105f;
-
-        for (int i = 0; i < menuItems.length; i++) {
-
-            float y;
-
-            if (i < 3) {
-                y = firstY - i * spacing;
-            } else {
-                /*
-                 * Exit je odvojen od ostalih
-                 */
-                y = height * 0.17f;
-            }
-
-            boolean hovered =
-                isMouseOver(
-                    startX,
-                    y - 40,
-                    width * 0.20f,
-                    60
-                );
-
-            if (hovered) {
-                font.setColor(cyan);
-            } else {
-                font.setColor(white);
-            }
-
-            font.draw(
-                batch,
-                menuItems[i],
-                startX,
-                y
-            );
-
-            /*
-             * Zapamti bounding box opcije
-             */
-            GlyphLayout layout =
-                new GlyphLayout(font, menuItems[i]);
-
-            menuBounds[i].set(
-                startX,
-                y - layout.height,
-                layout.width,
-                layout.height + 20
-            );
+            float gap = (i == menuItems.length - 1) ? EXIT_EXTRA_GAP : BUTTON_SPACING;
+            y += BUTTON_HEIGHT + gap;
         }
-
-        batch.end();
-
-        drawMenuLines(width, height);
     }
 
     // =========================================================
-    // MENU LINES
+    // PILOT / BEST SCORE
     // =========================================================
 
-    private void drawMenuLines(float width, float height) {
+    private void drawPilot(float width, float height) {
+        HighScoreManager highScores = ((SpaceChaserGame) game).getHighScoreManager();
+        String displayedName = editingName ? nameDraft + "|" : nameDraft;
+        drawPilotBox(pilotBox, smallFont, displayedName, editingName,
+                highScores.getSingleplayerHighScore(), highScores.getMultiplayerHighScore());
+    }
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+    // =========================================================
+    // STATUS MESSAGE
+    // =========================================================
 
-        float lineX = width * 0.06f;
-        float lineWidth = width * 0.18f;
+    private void drawStatusMessage(float width, float height) {
+        if (statusMessage == null || statusMessage.isEmpty()) return;
+        if (statusMessageAge >= STATUS_MESSAGE_DURATION) return;
 
-        float firstY = height * 0.635f;
-        float spacing = height * 0.105f;
+        // Centrirano, skroz na dnu ekrana - menu i pilot box su u uglovima,
+        // ovde po sredini nema sa cim da se preklopi.
+        GlyphLayout layout = new GlyphLayout(smallFont, statusMessage);
+        float paddingX = 24f;
+        float paddingY = 14f;
+        float boxWidth = layout.width + paddingX * 2f;
+        float boxHeight = layout.height + paddingY * 2f;
+        float boxX = width / 2f - boxWidth / 2f;
+        float boxY = CORNER_MARGIN;
 
-        for (int i = 0; i < 3; i++) {
-
-            float y = firstY - i * spacing;
-
-            boolean hovered =
-                isMouseOver(
-                    width * 0.075f,
-                    y - 20,
-                    width * 0.20f,
-                    60
-                );
-
-            if (hovered) {
-
-                /*
-                 * Glow
-                 */
-                shapeRenderer.setColor(
-                    new Color(0f, 1f, 1f, 0.20f)
-                );
-
-                shapeRenderer.rect(
-                    lineX,
-                    y - 3,
-                    lineWidth,
-                    8
-                );
-
-                shapeRenderer.setColor(cyan);
-
-            } else {
-
-                shapeRenderer.setColor(
-                    new Color(0f, 0.85f, 0.9f, 0.85f)
-                );
-            }
-
-            /*
-             * Horizontalna linija
-             */
-            shapeRenderer.rect(
-                lineX,
-                y,
-                lineWidth,
-                2
-            );
-
-            /*
-             * Dijagonalni završetak
-             */
-            shapeRenderer.rect(
-                lineX + lineWidth,
-                y,
-                25,
-                2
-            );
-        }
-
-        /*
-         * Exit linija
-         */
-        float exitY = height * 0.145f;
-
-        shapeRenderer.setColor(
-            new Color(0f, 0.85f, 0.9f, 0.85f)
-        );
-
-        shapeRenderer.rect(
-            lineX,
-            exitY,
-            lineWidth,
-            2
-        );
-
-        shapeRenderer.rect(
-            lineX + lineWidth,
-            exitY,
-            25,
-            2
-        );
-
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.25f, 0f, 0f, 0.55f);
+        shapeRenderer.rect(boxX, boxY, boxWidth, boxHeight);
+        shapeRenderer.setColor(Theme.RED);
+        float t = 2.5f;
+        shapeRenderer.rect(boxX, boxY, boxWidth, t);
+        shapeRenderer.rect(boxX, boxY + boxHeight - t, boxWidth, t);
+        shapeRenderer.rect(boxX, boxY, t, boxHeight);
+        shapeRenderer.rect(boxX + boxWidth - t, boxY, t, boxHeight);
         shapeRenderer.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        batch.begin();
+        smallFont.setColor(Theme.RED);
+        smallFont.draw(batch, statusMessage, boxX + paddingX, boxY + paddingY + layout.height);
+        smallFont.setColor(Theme.WHITE);
+        batch.end();
     }
 
     // =========================================================
@@ -529,21 +218,14 @@ public class MainMenuScreen implements Screen {
     // =========================================================
 
     private void handleInput(float width, float height) {
-
         if (!Gdx.input.justTouched()) {
             return;
         }
 
         float mouseX = Gdx.input.getX();
+        float mouseY = height - Gdx.input.getY();
 
-        /*
-         * LibGDX mouse Y ide od vrha ekrana,
-         * dok naše koordinate idu od dna.
-         */
-        float mouseY =
-            height - Gdx.input.getY();
-
-        if (nameBox.contains(mouseX, mouseY)) {
+        if (pilotBox.contains(mouseX, mouseY)) {
             beginNameEditing();
             return;
         }
@@ -551,43 +233,21 @@ public class MainMenuScreen implements Screen {
         finishNameEditing();
 
         for (int i = 0; i < menuBounds.length; i++) {
+            if (!menuBounds[i].contains(mouseX, mouseY)) continue;
 
-            if (menuBounds[i].contains(mouseX, mouseY)) {
-
-                switch (i) {
-
-                    case 0:
-                        game.setScreen(new GameScreen(game));
-                        /*
-                         * Ovde kasnije:
-                         *
-                         * ((Game) Gdx.app.getApplicationListener())
-                         *     .setScreen(new GameScreen(...));
-                         */
-                        break;
-
-                    case 1:
-
-                        game.setScreen(
-                            new MultiplayerScreen(game)
-                        );
-
-                        break;
-
-                    case 2:
-                        System.out.println(
-                            "Settings selected"
-                        );
-                        break;
-
-                    case 3:
-                        System.out.println(
-                            "Exit selected"
-                        );
-
-                        Gdx.app.exit();
-                        break;
-                }
+            switch (i) {
+                case 0:
+                    navigateTo(new GameScreen(game));
+                    break;
+                case 1:
+                    navigateTo(new MultiplayerScreen(game));
+                    break;
+                case 2:
+                    navigateTo(new SettingsScreen(game));
+                    break;
+                case 3:
+                    Gdx.app.exit();
+                    break;
             }
         }
     }
@@ -637,42 +297,8 @@ public class MainMenuScreen implements Screen {
     }
 
     // =========================================================
-    // HOVER
-    // =========================================================
-
-    private boolean isMouseOver(
-        float x,
-        float y,
-        float width,
-        float height
-    ) {
-
-        float mouseX = Gdx.input.getX();
-        float mouseY =
-            Gdx.graphics.getHeight() - Gdx.input.getY();
-
-        return mouseX >= x
-            && mouseX <= x + width
-            && mouseY >= y
-            && mouseY <= y + height;
-    }
-
-    // =========================================================
     // SCREEN METHODS
     // =========================================================
-
-    @Override
-    public void resize(int width, int height) {
-        updateScreenProjection(width, height);
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
 
     @Override
     public void hide() {
@@ -681,13 +307,19 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void dispose() {
-
-        batch.dispose();
-        shapeRenderer.dispose();
-        font.dispose();
+        super.dispose();
+        titleFont.dispose();
+        menuFont.dispose();
+        smallFont.dispose();
 
         if (shipTexture != null) {
             shipTexture.dispose();
+        }
+        if (enemyTexture != null) {
+            enemyTexture.dispose();
+        }
+        if (engineFireTexture != null) {
+            engineFireTexture.dispose();
         }
     }
 }

@@ -63,35 +63,10 @@ public class CompoundHitbox {
     }
 
     // ---------------- GET/SET ----------------
-    public float getOwnerX() {
-        return ownerX;
-    }
-
-    public float getOwnerY() {
-        return ownerY;
-    }
-
-    public float getOwnerRotation() {
-        return ownerRotation;
-    }
-    
     public Array<Polygon> getWorldBoxes() {
         return worldBoxes;
     }
 
-    public Array<Polygon> getLocalBoxes() {
-        return localBoxes;
-    }
-
-    public void clear() {
-        localBoxes.clear();
-        worldBoxes.clear();
-    }
-    
-    public int size() {
-        return localBoxes.size;
-    }
-    
     // ---------------- UPDATE ----------------
     
     public void update(float x,float y,float rotation){

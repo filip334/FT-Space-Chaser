@@ -2,6 +2,7 @@ package io.github.filip334.spacechaser.entity;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Vector2;
 import io.github.filip334.spacechaser.collision.CompoundHitbox;
 import io.github.filip334.spacechaser.component.HealthComponent;
 
@@ -59,17 +60,14 @@ public abstract class Entity {
         this.x = x;
         this.y = y;
     }
+    public Vector2 getPosition() {
+        return new Vector2(x, y);
+    }
     public float getPreviousX() {
         return previousX;
     }
     public float getPreviousY() {
         return previousY;
-    }
-    public void setPreviousX(float previousX) {
-        this.previousX = previousX;
-    }
-    public void setPreviousY(float previousY) {
-        this.previousY = previousY;
     }
 
         // VELOCITY

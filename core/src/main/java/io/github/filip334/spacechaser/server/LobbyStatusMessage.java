@@ -6,4 +6,6 @@ public class LobbyStatusMessage extends NetworkMessage {
     public String guestName;
     public String gameMode;
     public boolean gameStarted;
+    public boolean countingDown;
+    public float countdownRemaining;
 }

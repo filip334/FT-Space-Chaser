@@ -35,14 +35,10 @@ public class PathFinder {
 
         resetSearchState();
 
-        GridNode start = getNode(startX, startY);
-        GridNode target = getNode(targetX, targetY);
+        GridNode start = getWalkableNode(startX, startY);
+        GridNode target = getWalkableNode(targetX, targetY);
 
         if (start == null || target == null) {
-            return new Array<>();
-        }
-
-        if (!start.walkable || !target.walkable) {
             return new Array<>();
         }
 
@@ -152,6 +148,55 @@ public class PathFinder {
         if (node != null) {
             array.add(node);
         }
+    }
+
+    /**
+     * Vraca cvor na (x,y) ako je gazljiv; ako nije - npr. entitet se
+     * trenutno nalazi u "tampon zoni" oko zida koju navigaciona mreza
+     * tretira kao blokiranu - trazi se najblizi gazljivi cvor u sve vecem
+     * radijusu.
+     *
+     * FIX: findPath() je ranije odmah vracao praznu putanju cim start ILI
+     * cilj padnu u takvu tampon celiju, bez obzira da li put realno
+     * postoji. Na gusto zidanoj mapi je raketa vrlo cesto stajala bas u
+     * takvoj celiji (pored bilo kog zida), pa je A* stalno "odustajao" -
+     * to je izgledalo kao da se raketa zbuni i zamrzne.
+     */
+    private GridNode getWalkableNode(int x, int y) {
+        GridNode direct = getNode(x, y);
+        if (direct != null && direct.walkable) {
+            return direct;
+        }
+
+        for (int radius = 1; radius <= 6; radius++) {
+            GridNode nearest = null;
+            int nearestDist = Integer.MAX_VALUE;
+
+            for (int dx = -radius; dx <= radius; dx++) {
+                for (int dy = -radius; dy <= radius; dy++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy)) != radius) {
+                        continue; // samo obod trenutnog radijusa - vec pretrazeno iznutra
+                    }
+
+                    GridNode candidate = getNode(x + dx, y + dy);
+                    if (candidate == null || !candidate.walkable) {
+                        continue;
+                    }
+
+                    int dist = dx * dx + dy * dy;
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearest = candidate;
+                    }
+                }
+            }
+
+            if (nearest != null) {
+                return nearest;
+            }
+        }
+
+        return null;
     }
 
     private GridNode getNode(int x, int y) {

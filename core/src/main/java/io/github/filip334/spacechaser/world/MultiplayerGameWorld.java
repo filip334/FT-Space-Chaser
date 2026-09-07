@@ -14,7 +14,6 @@ import io.github.filip334.spacechaser.server.EntityState;
 import io.github.filip334.spacechaser.server.GameStateSnapshot;
 import io.github.filip334.spacechaser.world.GameSettings;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,6 +40,8 @@ public class MultiplayerGameWorld {
     private volatile int score = 0;
     private volatile float gameTime = 0f;
     private volatile boolean matchOver = false;
+    private volatile int wave = 0;
+    private volatile float waveCountdown = 0f;
 
     public MultiplayerGameWorld(Texture playerIdleTexture, Texture flameSheet,
                                  Texture enemyTexture, Texture bulletTexture) {
@@ -48,10 +49,15 @@ public class MultiplayerGameWorld {
     }
 
     /**
-     * Poziva se jednom po frejmu iz GameScreen-a da animacija odmice.
+     * Poziva se jednom po frejmu iz GameScreen-a da animacija odmice, kao i
+     * da se pozicije igraca priblize poslednjem mreznom stanju (interpolacija -
+     * vidi Player.interpolateNetworkState).
      */
-    public void update(float delta) {
+    public synchronized void update(float delta) {
         entityRenderer.update(delta);
+        for (Player p : players.values()) {
+            p.interpolateNetworkState(delta);
+        }
     }
 
     public void setLocalPlayerId(int id) {
@@ -72,6 +78,8 @@ public class MultiplayerGameWorld {
         this.score = snapshot.score;
         this.gameTime = snapshot.gameTime;
         this.matchOver = snapshot.matchOver;
+        this.wave = snapshot.wave;
+        this.waveCountdown = snapshot.waveCountdown;
     }
 
     private void syncPlayers(GameStateSnapshot snapshot) {
@@ -90,6 +98,7 @@ public class MultiplayerGameWorld {
             p.setNetworkFuel(state.fuel);
             p.setNetworkThrusting(state.thrusting);
             p.setNetworkBoosting(state.boosting);
+            p.setNetworkScore(state.score);
         }
 
         players.keySet().retainAll(ids);
@@ -130,6 +139,10 @@ public class MultiplayerGameWorld {
     }
 
     private void syncWalls(GameStateSnapshot snapshot) {
+        // Server salje zidove samo jednom (staticni su ceo mec) - ignorisi
+        // praznu listu u svim ostalim snapshotovima, ne brisi ono sto vec imamo.
+        if (!snapshot.wallsIncluded) return;
+
         Set<Integer> ids = new HashSet<>();
 
         for (EntityState state : snapshot.walls) {
@@ -144,6 +157,10 @@ public class MultiplayerGameWorld {
     }
 
     private void syncCoins(GameStateSnapshot snapshot) {
+        // Server salje novcice samo kad se neki pokupi - ignorisi praznu
+        // listu u svim ostalim snapshotovima, ne brisi ono sto vec imamo.
+        if (!snapshot.coinsChanged) return;
+
         Set<Integer> ids = new HashSet<>();
         for (EntityState state : snapshot.coins) {
             ids.add(state.id);
@@ -181,18 +198,6 @@ public class MultiplayerGameWorld {
         shapeRenderer.setTransformMatrix(new Matrix4());
     }
 
-    public synchronized Collection<Player> getPlayers() {
-        return players.values();
-    }
-
-    public synchronized Collection<Enemy> getEnemies() {
-        return enemies.values();
-    }
-
-    public synchronized Collection<Bullet> getBullets() {
-        return bullets.values();
-    }
-
     public synchronized Player getLocalPlayer() {
         return players.get(localPlayerId);
     }
@@ -220,6 +225,18 @@ public class MultiplayerGameWorld {
 
     public boolean isMatchOver() {
         return matchOver;
+    }
+
+    public int getWaveNumber() {
+        return wave;
+    }
+
+    public boolean isWaveCountingDown() {
+        return waveCountdown > 0f;
+    }
+
+    public float getWaveCountdownSeconds() {
+        return waveCountdown;
     }
 
     public void dispose() {

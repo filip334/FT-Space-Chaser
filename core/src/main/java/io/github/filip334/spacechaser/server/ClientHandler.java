@@ -58,6 +58,9 @@ public class ClientHandler implements Runnable {
                     server.onPlayerInput(input);
                 } else if (received instanceof JoinLobbyMessage) {
                     server.onPlayerNamed(playerId, ((JoinLobbyMessage) received).playerName);
+                } else if (received instanceof PauseMessage) {
+                    // ne veruj klijentovom playerId-u, koristi onaj sa ovog handlera
+                    server.onPlayerPauseRequest(playerId, ((PauseMessage) received).pause);
                 }
             }
         } catch (EOFException | SocketException e) {

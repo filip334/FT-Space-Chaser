@@ -7,13 +7,13 @@ import io.github.filip334.spacechaser.entity.Wall;
 public class EncounterField {
 
     //
-    private static final int GRID_COLS = 16;
-    private static final int GRID_ROWS = 16;
+    private static final int GRID_COLS = 10;
+    private static final int GRID_ROWS = 10;
 
     private static final float WALL_THICKNESS = 6f;
-    private static final float MAP_PADDING = 12f;
-    private static final float CELL_SIZE = 60f;
-    private static final float POST_SIZE = 18f;
+    private static final float MAP_PADDING = 8f;
+    private static final float CELL_SIZE = 97f;
+    private static final float POST_SIZE = 13f;
     //
     private Array<Wall> walls;
 
@@ -50,14 +50,76 @@ public class EncounterField {
         addVerticalWall(0, GRID_ROWS, GRID_COLS);
 
         // Spoljni prsten - prolaz na sredini svake strane (kao original)
-        buildRingWithGaps(3, GRID_COLS - 3, 3, GRID_ROWS - 3, 2f);
+        buildRingWithGaps(1, GRID_COLS - 1, 1, GRID_ROWS - 1, 2f);
 
         // Unutrasnji prsten - manji, blize centru
-        buildRingWithGaps(6, GRID_COLS - 6, 6, GRID_ROWS - 6, 1.5f);
+        buildRingWithGaps(2, GRID_COLS - 2, 2, GRID_ROWS - 2, 2f);
 
+        //levo
+        addVerticalWall(3,7,3);
+        //desno
+        addVerticalWall(3,7,7);
+        
+        //levo dole
+        addVerticalWall(3,4,4);
+        //desno dole
+        addVerticalWall(3,4,6);
+        //levo gore
+        addVerticalWall(6,7,4);
+        //desno gore
+        addVerticalWall(6,7,6);
+        
+        //dole levo
+        addPost(4, 3);//col row
+        addPost(4, 4);
+        
+        
+        //dole desno
+        addPost(6, 3);
+        addPost(6, 4);
+        
+        //gore levo
+        addPost(4, 6);
+        addPost(4, 7);
+        
+        //gore desno
+        addPost(6, 6);
+        addPost(6, 7);
+        
+        //levo
+        addPost(3, 3);
+        addPost(3, 7);
+        
+        //desno
+        addPost(7, 3);
+        addPost(7, 7);
+        
+        //zidovi krug
+        addPost(1, 4);
+        addPost(1, 6);
+        addPost(9, 4);
+        addPost(9, 6);
+        
+        addPost(2, 4);
+        addPost(2, 6);
+        addPost(8, 4);
+        addPost(8, 6);
+        
+        
+        //plafoni krug
+        addPost(4, 9);
+        addPost(6, 9);
+        addPost(4, 1);
+        addPost(6, 1);
+        
+        addPost(4, 2);
+        addPost(6, 2);
+        addPost(4, 8);
+        addPost(6, 8);
+        
         // Mali "postovi" na uglovima oba prstena - stilski akcenat kao na originalu
-        addCornerPosts(3, GRID_COLS - 3, 3, GRID_ROWS - 3);
-        addCornerPosts(6, GRID_COLS - 6, 6, GRID_ROWS - 6);
+        addCornerPosts(1, GRID_COLS - 1, 1, GRID_ROWS - 1);
+        addCornerPosts(2, GRID_COLS - 2, 2, GRID_ROWS - 2);
     }
 
     /**
@@ -140,6 +202,10 @@ public class EncounterField {
 
     public float getFieldHeight() {
         return fieldHeight;
+    }
+
+    public float getCellSize() {
+        return cellWidth;
     }
 
     // ---------------- UPDATE ----------------

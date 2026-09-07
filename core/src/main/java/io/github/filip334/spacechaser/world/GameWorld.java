@@ -16,9 +16,7 @@ import io.github.filip334.spacechaser.entity.Wall;
 import io.github.filip334.spacechaser.enemy.PathFinder;
 import io.github.filip334.spacechaser.renderer.EntityRenderer;
 import io.github.filip334.spacechaser.renderer.HudRenderer;
-import io.github.filip334.spacechaser.screen.MainMenuScreen;
 
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -55,8 +53,20 @@ public class GameWorld {
 
     // CONFIG
     private static final int ENEMY_WAVE_SIZE = 3;
-    private static final int SCORE_PICKUP_COUNT = 5;
+    private static final int MAX_WAVE_ENEMY_COUNT = 8;
+    // = Bullet.DAMAGE, tako da neprijatelji u talasu N ginu na tacno N pogodaka.
+    private static final float ENEMY_HEALTH_PER_WAVE = 33f;
+    private static final int SCORE_PER_KILL_BASE = 10;
+    private static final float ENEMY_SPAWN_RADIUS = 70f;
+    private static final float WAVE_COUNTDOWN_SECONDS = 3f;
+    // Kad broj preostalih raketa u talasu padne na ovaj procenat pocetnog
+    // broja (ili manje), sve preostale postaju "besne" (direktno jure igraca).
+    private static final float ENRAGE_THRESHOLD = 0.3f;
     private int nextCoinId = 1;
+    private int waveNumber = 0;
+    private int waveInitialEnemyCount = 0;
+    private boolean waveCountingDown = false;
+    private float waveCountdown = 0f;
 
     // ---------------- CONSTRUCTORS ----------------
 
@@ -116,17 +126,20 @@ public class GameWorld {
         handleShooting(delta);
         updateBullets(delta);
 
+        // Jednom po frejmu (ne po igracu) - meci vec znaju svog vlasnika
+        // (Bullet.getOwnerId()), pa se ubistvo pripisuje pravom igracu.
+        score += collisionSystem.checkWorldCollisions(bullets, enemies, encounterField.getWalls(), players);
+
         for (Player p : players.values()) {
-            score += collisionSystem.checkCollisions(p, bullets, enemies, encounterField.getWalls());
-            score += collisionSystem.collectCoins(p, coins);
+            collisionSystem.checkPlayerCollisions(p, enemies, encounterField.getWalls());
+            int coinsGained = collisionSystem.collectCoins(p, coins);
+            p.addScore(coinsGained);
+            score += coinsGained;
         }
 
-        handleGameOver();
         cleanupDeadEntities();
 
-        if (enemies.size == 0 && !allPlayersDead()) {
-            spawnEnemyWave();
-        }
+        updateWaveCountdown(delta);
     }
 
     // ---------------- UPDATE PARTS ----------------
@@ -151,9 +164,27 @@ public class GameWorld {
 
     private void updateEnemies(float delta) {
         Player target = getPrimaryTarget();
+        updateEnrage();
         for (int i = 0; i < enemies.size; i++) {
             enemies.get(i).update(delta, target);
             enemies.get(i).applySeparation(enemies, delta);
+        }
+    }
+
+    /**
+     * Kad u talasu ostane malo raketa (<= ENRAGE_THRESHOLD od pocetnog broja),
+     * sve preostale odmah krecu direktno na igraca - bez ovoga bi igrac mogao
+     * da ostavi 1-2 rakete u patroli i bezbedno farmi novcice/vreme
+     * izbegavajuci ih.
+     */
+    private void updateEnrage() {
+        if (waveInitialEnemyCount <= 0) return;
+
+        int threshold = Math.max(1, Math.round(waveInitialEnemyCount * ENRAGE_THRESHOLD));
+        boolean shouldEnrage = enemies.size <= threshold;
+
+        for (Enemy enemy : enemies) {
+            enemy.setEnraged(shouldEnrage);
         }
     }
 
@@ -188,18 +219,6 @@ public class GameWorld {
      */
     public boolean isMatchOver() {
         return !players.isEmpty() && allPlayersDead();
-    }
-
-    // ---------------- GAME OVER ----------------
-
-    private void handleGameOver() {
-        // game je null na serveru (headless) - server ne menja ekrane, samo simulira
-        if (game == null) return;
-
-        Player local = players.get(LOCAL_PLAYER_ID);
-        if (local != null && local.isDead()) {
-            game.setScreen(new MainMenuScreen(game));
-        }
     }
 
     // ---------------- RENDER ----------------
@@ -251,53 +270,139 @@ public class GameWorld {
 
         hudRenderer.setProjectionMatrix(projectionMatrix);
         hudRenderer.render(batch, local.getHealth(), local.getMaxHealth(),
-                local.getFuel(), local.getMaxFuel(), score, gameTime);
+                local.getFuel(), local.getMaxFuel(), score, gameTime, waveNumber);
+
+        if (waveCountingDown) {
+            hudRenderer.renderCountdown(batch, (int) Math.ceil(waveCountdown));
+        }
     }
 
     // ---------------- SPAWN ----------------
 
-    private void spawnEnemyWave() {
-        float margin = 80f;
-        float minX = encounterField.getFieldX() + margin;
-        float maxX = encounterField.getFieldX() + encounterField.getFieldWidth() - margin;
-        float minY = encounterField.getFieldY() + margin;
-        float maxY = encounterField.getFieldY() + encounterField.getFieldHeight() - margin;
+    /**
+     * Kad nestane poslednja raketa iz talasa, sledeci talas se ne stvara
+     * odmah - prvo 3 sekunde odbrojavanja (prikazano na sredini mape), pa tek
+     * onda spawnEnemyWave().
+     */
+    private void updateWaveCountdown(float delta) {
+        if (enemies.size > 0 || allPlayersDead()) {
+            waveCountingDown = false;
+            return;
+        }
 
-        for (int i = 0; i < ENEMY_WAVE_SIZE; i++) {
-            enemies.add(createEnemyInsideMap(minX, maxX, minY, maxY));
+        if (!waveCountingDown) {
+            waveCountingDown = true;
+            waveCountdown = WAVE_COUNTDOWN_SECONDS;
+            return;
+        }
+
+        waveCountdown -= delta;
+        if (waveCountdown <= 0f) {
+            waveCountingDown = false;
+            spawnEnemyWave();
         }
     }
 
-    private Enemy createEnemyInsideMap(float minX, float maxX, float minY, float maxY) {
+    public boolean isWaveCountingDown() {
+        return waveCountingDown;
+    }
+
+    public float getWaveCountdownSeconds() {
+        return waveCountdown;
+    }
+
+    /**
+     * Svaki talas neprijatelja se stvara u sredini mape (umesto nasumicno po
+     * celoj mapi) - sto je igra dalje odmakla, talas je teze: vise
+     * neprijatelja (do MAX_WAVE_ENEMY_COUNT), vise zivota (N pogodaka za
+     * talas N) i vise poena po ubistvu.
+     */
+    private void spawnEnemyWave() {
+        waveNumber++;
+
+        int enemyCount = Math.min(ENEMY_WAVE_SIZE + (waveNumber - 1), MAX_WAVE_ENEMY_COUNT);
+        float waveHealth = ENEMY_HEALTH_PER_WAVE * waveNumber;
+        int waveScoreValue = SCORE_PER_KILL_BASE * waveNumber;
+
+        float centerX = encounterField.getFieldX() + encounterField.getFieldWidth() / 2f;
+        float centerY = encounterField.getFieldY() + encounterField.getFieldHeight() / 2f;
+
+        for (int i = 0; i < enemyCount; i++) {
+            Enemy enemy = createEnemyNearCenter(centerX, centerY);
+            enemy.setMaxHealth(waveHealth);
+            enemy.setScoreValue(waveScoreValue);
+            enemies.add(enemy);
+        }
+
+        waveInitialEnemyCount = enemyCount;
+    }
+
+    private Enemy createEnemyNearCenter(float centerX, float centerY) {
         for (int attempt = 0; attempt < 30; attempt++) {
-            Enemy enemy = new Enemy(MathUtils.random(minX, maxX), MathUtils.random(minY, maxY));
+            float angle = MathUtils.random(0f, MathUtils.PI2);
+            float distance = MathUtils.random(0f, ENEMY_SPAWN_RADIUS);
+            float x = centerX + MathUtils.cos(angle) * distance;
+            float y = centerY + MathUtils.sin(angle) * distance;
+
+            Enemy enemy = new Enemy(x, y);
             configureEnemyNavigation(enemy);
             if (enemy.isInNavigablePosition()) {
                 return enemy;
             }
         }
 
-        // Ova tacka je u otvorenom uglu mape i koristi se samo ako je RNG vise puta pogodio zid.
-        Enemy fallback = new Enemy(minX, minY);
+        // Ako su svi pokusaji pogodili zid (blizu centra ima vise prepreka),
+        // koristi tacan centar - navigacija (A*) ce ga izbaciti odatle.
+        Enemy fallback = new Enemy(centerX, centerY);
         configureEnemyNavigation(fallback);
         return fallback;
     }
 
-    private void spawnCoins() {
-        float margin = 80f;
-        float minX = encounterField.getFieldX() + margin;
-        float maxX = encounterField.getFieldX() + encounterField.getFieldWidth() - margin;
-        float minY = encounterField.getFieldY() + margin;
-        float maxY = encounterField.getFieldY() + encounterField.getFieldHeight() - margin;
+    public int getWaveNumber() {
+        return waveNumber;
+    }
 
-        for (int i = 0; i < SCORE_PICKUP_COUNT; i++) {
-            for (int attempt = 0; attempt < 30; attempt++) {
-                float x = MathUtils.random(minX, maxX);
-                float y = MathUtils.random(minY, maxY);
-                if (isPickupPositionClear(x, y)) {
-                    coins.add(new Coin(nextCoinId++, x, y));
-                    break;
-                }
+    /**
+     * Pozicije novcica sa originalne Taito Space Chaser mape - izvucene iz
+     * vektorizovanog traga screenshot-a, pa poravnate u prave linije i
+     * simetrizovane (levo-desno i gore-dole ogledalo) da bi izgledale
+     * uredno umesto sa sumom iz trasiranja. Koordinate su u jedinicama
+     * celije {col, row} - lako za rucno dotericanje.
+     */
+    private static final float[][] COIN_POSITIONS = {
+            {1.43f,0.53f}, {1.75f,0.53f}, {2.12f,0.53f}, {2.43f,0.53f}, {2.80f,0.53f}, {3.13f,0.53f},
+            {3.70f,0.53f}, {6.30f,0.53f}, {6.87f,0.53f}, {7.57f,0.53f}, {7.89f,0.53f}, {8.25f,0.53f},
+            {8.57f,0.53f}, {8.95f,0.53f}, {3.94f,0.53f}, {7.19f,0.53f}, {0.58f,1.41f}, {9.42f,1.41f},
+            {2.43f,1.57f}, {2.80f,1.57f}, {3.24f,1.57f}, {3.62f,1.57f}, {3.94f,1.57f}, {6.38f,1.57f},
+            {6.76f,1.57f}, {7.19f,1.57f}, {7.57f,1.57f}, {7.89f,1.57f}, {0.58f,1.77f}, {9.42f,1.77f},
+            {0.58f,2.13f}, {9.42f,2.13f}, {1.59f,2.25f}, {8.41f,2.25f}, {0.58f,2.52f}, {9.42f,2.52f},
+            {1.59f,2.64f}, {8.41f,2.64f}, {0.58f,2.78f}, {9.42f,2.78f}, {0.58f,3.15f}, {1.59f,3.15f},
+            {8.41f,3.15f}, {9.42f,3.15f}, {0.58f,3.56f}, {1.59f,3.56f}, {2.60f,3.56f}, {3.46f,3.56f},
+            {5.23f,3.56f}, {6.54f,3.56f}, {7.40f,3.56f}, {8.41f,3.56f}, {9.42f,3.56f}, {0.58f,3.86f},
+            {1.59f,3.86f}, {2.60f,3.86f}, {3.46f,3.86f}, {5.23f,3.86f}, {6.54f,3.86f}, {7.40f,3.86f},
+            {8.41f,3.86f}, {9.42f,3.86f}, {0.58f,6.44f}, {1.59f,6.44f}, {2.60f,6.44f}, {3.46f,6.44f},
+            {5.23f,6.44f}, {6.54f,6.44f}, {7.40f,6.44f}, {8.41f,6.44f}, {9.42f,6.44f}, {0.58f,6.83f},
+            {1.59f,6.83f}, {2.60f,6.83f}, {3.46f,6.83f}, {5.23f,6.83f}, {6.54f,6.83f}, {7.40f,6.83f},
+            {8.41f,6.83f}, {9.42f,6.83f}, {1.59f,7.36f}, {8.41f,7.36f}, {0.58f,7.48f}, {9.42f,7.48f},
+            {1.59f,7.75f}, {8.41f,7.75f}, {0.58f,7.87f}, {9.42f,7.87f}, {0.58f,8.23f}, {9.42f,8.23f},
+            {2.43f,8.43f}, {2.80f,8.43f}, {3.24f,8.43f}, {3.62f,8.43f}, {3.94f,8.43f}, {6.38f,8.43f},
+            {6.76f,8.43f}, {7.19f,8.43f}, {7.57f,8.43f}, {7.89f,8.43f}, {0.58f,8.59f}, {9.42f,8.59f},
+            {0.58f,8.85f}, {9.42f,8.85f}, {1.43f,9.47f}, {1.75f,9.47f}, {2.12f,9.47f}, {2.43f,9.47f},
+            {2.80f,9.47f}, {3.13f,9.47f}, {3.70f,9.47f}, {6.30f,9.47f}, {6.87f,9.47f}, {7.57f,9.47f},
+            {7.89f,9.47f}, {8.25f,9.47f}, {8.57f,9.47f}, {8.95f,9.47f}, {3.46f,9.47f}, {6.54f,9.47f},
+    };
+
+    private void spawnCoins() {
+        float fx = encounterField.getFieldX();
+        float fy = encounterField.getFieldY();
+        float cellSize = encounterField.getCellSize();
+
+        for (float[] point : COIN_POSITIONS) {
+            float x = fx + point[0] * cellSize;
+            float y = fy + point[1] * cellSize;
+
+            if (isPickupPositionClear(x, y)) {
+                coins.add(new Coin(nextCoinId++, x, y));
             }
         }
     }
@@ -336,8 +441,16 @@ public class GameWorld {
 
     private boolean isNavigationCellClear(float x, float y) {
         // Malo sire od hitbox-a rakete, tako da A* ne bira celiju pored koje
-        // raketa fizicki ne moze da prodje.
-        final float clearance = 30f;
+        // raketa fizicki ne moze da prodje. Stvarna fizicka bezbednost se
+        // svakako proverava posebno (overlapsNavigationWall) pri svakom
+        // pokusaju kretanja - ovaj clearance samo blago favorizuje putanje
+        // dalje od zidova. FIX: sa 30 (= cela velicina navigacione celije)
+        // preko 55% mreze na gusce zidanim mapama je bilo markirano kao
+        // neprohodno, pa se raketa cesto nalazila TACNO u toj baferskoj
+        // zoni - findPath() je tada odmah odustajao (viz. PathFinder fix)
+        // sto je izgledalo kao zamrzavanje/zbunjivanje. Manji clearance
+        // ostavlja mnogo vise stvarno gazljivih celija.
+        final float clearance = 15f;
         for (Wall wall : encounterField.getWalls()) {
             if (x >= wall.getX() - clearance && x <= wall.getX() + wall.getWidth() + clearance
                     && y >= wall.getY() - clearance && y <= wall.getY() + wall.getHeight() + clearance) {
@@ -370,17 +483,18 @@ public class GameWorld {
             shootCooldown -= delta;
         }
 
-        for (Player p : players.values()) {
+        for (Map.Entry<Integer, Player> entry : players.entrySet()) {
+            Player p = entry.getValue();
             if (p.isDead()) continue;
             if (!p.wantsToShoot()) continue;
             if (shootCooldown > 0f) continue;
 
-            spawnBulletFor(p);
+            spawnBulletFor(entry.getKey(), p);
             shootCooldown = SHOOT_INTERVAL;
         }
     }
 
-    private void spawnBulletFor(Player p) {
+    private void spawnBulletFor(int ownerId, Player p) {
         float rot = (float) Math.toRadians(p.getRotation());
 
         float cos = (float) Math.cos(rot);
@@ -393,7 +507,9 @@ public class GameWorld {
         float noseX = p.getX() + localNoseX * cos - localNoseY * sin;
         float noseY = p.getY() + localNoseX * sin + localNoseY * cos;
 
-        bullets.add(new Bullet(noseX, noseY, cos, sin, p.getRotation()));
+        Bullet bullet = new Bullet(noseX, noseY, cos, sin, p.getRotation());
+        bullet.setOwnerId(ownerId);
+        bullets.add(bullet);
     }
 
     // ---------------- DISPOSE ----------------
@@ -427,10 +543,6 @@ public class GameWorld {
 
     public Player getPlayerById(int playerId) {
         return players.get(playerId);
-    }
-
-    public Collection<Player> getPlayers() {
-        return players.values();
     }
 
     public Map<Integer, Player> getPlayersMap() {

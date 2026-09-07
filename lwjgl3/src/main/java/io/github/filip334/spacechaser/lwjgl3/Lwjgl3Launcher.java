@@ -12,6 +12,15 @@ public class Lwjgl3Launcher {
         createApplication();
     }
 
+    // Meniji (Main Menu, Multiplayer, Host/Join lobby, Pause...) crtaju dugmad
+    // na fiksnim piksel koordinatama, ne kroz viewport koji bi ih sam skalirao
+    // kao sto to radi sama igra (GameScreen koristi FitViewport). Zato prozor
+    // ne sme da se smanji ispod velicine na kojoj ta dugmad jos uvek staju bez
+    // preklapanja - umesto da menjamo raspored u svakom ekranu, jednostavnije
+    // je da ogranicimo koliko mali sam prozor sme da bude.
+    private static final int MIN_WINDOW_WIDTH = 960;
+    private static final int MIN_WINDOW_HEIGHT = 600;
+
     private static Lwjgl3Application createApplication() {
         return new Lwjgl3Application(new SpaceChaserGame(), getDefaultConfiguration());
     }
@@ -35,13 +44,12 @@ public class Lwjgl3Launcher {
                 availableWidth / (float) GameLayout.WINDOW_WIDTH,
                 availableHeight / (float) GameLayout.WINDOW_HEIGHT));
         configuration.setWindowedMode(
-                Math.round(GameLayout.WINDOW_WIDTH * scale),
-                Math.round(GameLayout.WINDOW_HEIGHT * scale));
+                Math.max(MIN_WINDOW_WIDTH, Math.round(GameLayout.WINDOW_WIDTH * scale)),
+                Math.max(MIN_WINDOW_HEIGHT, Math.round(GameLayout.WINDOW_HEIGHT * scale)));
         configuration.setResizable(true);
-        /*configuration.setWindowedMode(
-                Lwjgl3ApplicationConfiguration.getDisplayMode().width,
-                (int)(Lwjgl3ApplicationConfiguration.getDisplayMode().height-80)
-        );*/
+        // Korisnik ne moze rucno da smanji prozor ispod ovoga (max sirina/visina
+        // -1 = bez gornjeg ogranicenja).
+        configuration.setWindowSizeLimits(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT, -1, -1);
         //// You can change these files; they are in lwjgl3/src/main/resources/ .
         //// They can also be loaded from the root of assets/ .
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");

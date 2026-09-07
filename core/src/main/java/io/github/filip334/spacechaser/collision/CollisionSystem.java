@@ -7,17 +7,44 @@ import io.github.filip334.spacechaser.entity.Player;
 import io.github.filip334.spacechaser.entity.Coin;
 import io.github.filip334.spacechaser.entity.Wall;
 
-public class CollisionSystem {
-    
-    public int checkCollisions(Player player, Array<Bullet> bullets, Array<Enemy> enemies, Array<Wall> walls) {
-        int scoreGained = 0;
+import java.util.Map;
 
+public class CollisionSystem {
+
+    // Raspored novcica prati original (124 komada: 64 spoljni hodnik + 40
+    // unutrasnji hodnik + 20 centar), pa je vrednost po novcicu snizena sa
+    // ranijih 100 da ukupan skor ostane razuman.
+    private static final int COIN_VALUE = 10;
+
+    /**
+     * Sudari koji se desavaju JEDNOM po frejmu (ne po igracu) - meci ne
+     * pripadaju nijednom konkretnom igracu u smislu fizike, vec samo svetu.
+     *
+     * FIX: ranije se cela ova logika zvala IZNUTRA per-player petlje u
+     * GameWorld (jednom za svakog igraca, nad ISTOM celom listom metaka).
+     * Zbog bullet.isDead() provere ubistvo se fizicki racunalo samo jednom,
+     * ali uvek se pripisivalo igracu koji je PRVI na redu u Map iteraciji
+     * (obicno host), bez obzira ko je stvarno ispalio taj metak. Dok je
+     * postojao samo zajednicki skor to se nije primetilo; sad kad svaki
+     * igrac ima svoj skor, ubistvo se pripisuje pravom vlasniku metka
+     * (Bullet.getOwnerId()).
+     *
+     * @return ukupno poena od ubijanja neprijatelja ovog frejma (vec je
+     *         pojedinacno pripisano odgovarajucim igracima preko
+     *         Player.addScore()) - GameWorld ga samo dodaje u ukupan skor.
+     */
+    public int checkWorldCollisions(Array<Bullet> bullets, Array<Enemy> enemies, Array<Wall> walls,
+                                     Map<Integer, Player> players) {
         checkBulletsVsWalls(bullets, walls);
-        scoreGained += checkBulletsVsEnemies(bullets, enemies);
-        checkPlayerVsWalls(player, walls);
+        int killScore = checkBulletsVsEnemies(bullets, enemies, players);
         checkEnemiesVsWalls(enemies, walls);
+        return killScore;
+    }
+
+    /** Sudari specificni za jednog igraca - njegov sopstveni brod protiv zidova i neprijatelja. */
+    public void checkPlayerCollisions(Player player, Array<Enemy> enemies, Array<Wall> walls) {
+        checkPlayerVsWalls(player, walls);
         checkPlayerVsEnemies(player, enemies);
-        return scoreGained;
     }
 
     public int collectCoins(Player player, Array<Coin> coins) {
@@ -31,7 +58,7 @@ public class CollisionSystem {
             float pickupDistance = Coin.RADIUS + 42f;
             if (dx * dx + dy * dy <= pickupDistance * pickupDistance) {
                 coins.removeIndex(i);
-                scoreGained += 100;
+                scoreGained += COIN_VALUE;
             }
         }
         return scoreGained;
@@ -126,21 +153,18 @@ public class CollisionSystem {
         }
 
         /*
-         * Prvo pokušavamo da poništimo samo rotaciju.
+         * FIX: ranije se ovde prvo poništavala SAMO rotacija (vraćala na
+         * prethodnu) kad bi novi ugao izazvao sudar. Dok god je brod stajao
+         * uz zid pod uglom gde BILO KOJA nova rotacija dodiruje zid, taj
+         * pokušaj se svaki frejm brisao - igrač fizički nije mogao da se
+         * okrene (A/D nisu radili), samo kretanje unazad je pomeralo brod
+         * dovoljno da rotacija prestane da izaziva sudar.
          *
-         * Ako je nova rotacija uzrokovala sudar,
-         * vraćamo staru rotaciju.
-         */
-        player.restorePreviousRotation();
-
-        if (!overlapsAnyWall(player, walls)) {
-            return;
-        }
-
-        /*
-         * Ako je igrač i dalje u zidu,
-         * CollisionResolver rešava poziciju
-         * i velocity.
+         * Sad se sudar UVEK rešava kroz CollisionResolver, bez obzira da li
+         * ga je izazvala rotacija ili pravo kretanje - on zadržava novu
+         * rotaciju i samo odgurne brod (MTV push-out) taman toliko da
+         * preklapanje nestane, plus ukloni brzinu koja ide ka zidu. Tako
+         * okretanje uz zid brod blago odgurne od njega umesto da ga zakljuca.
          */
         CollisionResolver.resolvePlayerVsWalls(
                 player,
@@ -170,7 +194,7 @@ public class CollisionSystem {
         }
     }
 
-    private int checkBulletsVsEnemies(Array<Bullet> bullets, Array<Enemy> enemies) {
+    private int checkBulletsVsEnemies(Array<Bullet> bullets, Array<Enemy> enemies, Map<Integer, Player> players) {
         int scoreGained = 0;
 
         for (int i = 0; i < bullets.size; i++) {
@@ -191,7 +215,12 @@ public class CollisionSystem {
                     bullet.isDead(true);
                     enemy.takeDamage(bullet.DAMAGE);
                     if (enemy.isDead()) {
-                        scoreGained += 10;
+                        int value = enemy.getScoreValue();
+                        Player owner = players.get(bullet.getOwnerId());
+                        if (owner != null) {
+                            owner.addScore(value);
+                        }
+                        scoreGained += value;
                     }
                     break;
                 }
