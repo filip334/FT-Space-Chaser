@@ -137,6 +137,12 @@ public class GameWorld {
             score += coinsGained;
         }
 
+        // Kad su svi novcici na mapi pokupljeni, spawnuj ceo raspored ponovo
+        // umesto da mapa ostane prazna do kraja meca.
+        if (coins.size == 0) {
+            spawnCoins();
+        }
+
         cleanupDeadEntities();
 
         updateWaveCountdown(delta);
@@ -243,7 +249,7 @@ public class GameWorld {
         encounterField.render(shapeRenderer);
         for (Coin coin : coins) {
             shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.YELLOW);
-            shapeRenderer.circle(coin.getX(), coin.getY(), Coin.RADIUS);
+            shapeRenderer.rect(coin.getX() - Coin.RADIUS, coin.getY() - Coin.RADIUS, Coin.RADIUS * 2f, Coin.RADIUS * 2f);
         }
         shapeRenderer.end();
         shapeRenderer.setTransformMatrix(new Matrix4());

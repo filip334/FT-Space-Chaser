@@ -192,7 +192,7 @@ public class MultiplayerGameWorld {
         }
         shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.YELLOW);
         for (Coin coin : coins.values()) {
-            shapeRenderer.circle(coin.getX(), coin.getY(), Coin.RADIUS);
+            shapeRenderer.rect(coin.getX() - Coin.RADIUS, coin.getY() - Coin.RADIUS, Coin.RADIUS * 2f, Coin.RADIUS * 2f);
         }
         shapeRenderer.end();
         shapeRenderer.setTransformMatrix(new Matrix4());

@@ -1,7 +1,7 @@
 package io.github.filip334.spacechaser.entity;
 
 public class Coin extends Entity {
-    public static final float RADIUS = 8f;
+    public static final float RADIUS = 5f;
 
     private final int id;
 
@@ -9,8 +9,8 @@ public class Coin extends Entity {
         this.id = id;
         this.x = x;
         this.y = y;
-        this.width = 16f;
-        this.height = 16f;
+        this.width = RADIUS * 2f;
+        this.height = RADIUS * 2f;
     }
 
     public int getId() {
