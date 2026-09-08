@@ -16,6 +16,7 @@ import io.github.filip334.spacechaser.entity.Wall;
 import io.github.filip334.spacechaser.enemy.PathFinder;
 import io.github.filip334.spacechaser.renderer.EntityRenderer;
 import io.github.filip334.spacechaser.renderer.HudRenderer;
+import io.github.filip334.spacechaser.settings.GameSettings;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,6 +30,12 @@ public class GameWorld {
     // VISE igraca po ID-ju (id 0 = lokalni igrac u singleplayeru)
     private final Map<Integer, Player> players = new LinkedHashMap<>();
     private static final int LOCAL_PLAYER_ID = 0;
+    // GameServer dodeljuje ID-jeve redom pocevsi od 1, a host se konektuje na
+    // sopstveni server pre nego sto bilo koji drugi igrac stigne da se
+    // pridruzi - zato je ID 1 uvek host, a sledeci (2) uvek gost.
+    private static final int HOST_PLAYER_ID = 1;
+    private static final float PLAYER_SPAWN_MARGIN = 80f;
+    private static final float PLAYER_SPAWN_SIDE_OFFSET = 150f;
 
     private final Array<Bullet> bullets = new Array<>();
     private final Array<Enemy> enemies = new Array<>();
@@ -102,11 +109,15 @@ public class GameWorld {
         shapeRenderer = new ShapeRenderer();
         hudRenderer = new HudRenderer();
 
-        players.put(LOCAL_PLAYER_ID, new Player(100, 100, settings, true));
         encounterField = new EncounterField();
+        float spawnX = encounterField.getFieldX() + encounterField.getFieldWidth() / 2f;
+        float spawnY = encounterField.getFieldY() + PLAYER_SPAWN_MARGIN;
+        players.put(LOCAL_PLAYER_ID, new Player(spawnX, spawnY, settings, true));
         enemyPathFinder = createEnemyPathFinder();
 
-        spawnEnemyWave();
+        // Prvi talas se NE stvara ovde odmah - isto kao na serveru (multiplayer),
+        // updateWaveCountdown() ce ga sam pokrenuti kroz uobicajeno 3-sekundno
+        // odbrojavanje cim primeti da nema neprijatelja (enemies.size == 0).
         spawnCoins();
     }
 
@@ -531,16 +542,13 @@ public class GameWorld {
     public void spawnPlayer(int playerId) {
         if (players.containsKey(playerId)) return;
 
-        float margin = 80f;
-        float minX = encounterField.getFieldX() + margin;
-        float maxX = encounterField.getFieldX() + encounterField.getFieldWidth() - margin;
-        float minY = encounterField.getFieldY() + margin;
-        float maxY = encounterField.getFieldY() + encounterField.getFieldHeight() - margin;
+        float centerX = encounterField.getFieldX() + encounterField.getFieldWidth() / 2f;
+        float bottomY = encounterField.getFieldY() + PLAYER_SPAWN_MARGIN;
+        // Host uvek levo od centra, gost uvek desno - isto na svakom klijentu
+        // jer server sam odlucuje pozicije i salje ih dalje.
+        float x = (playerId == HOST_PLAYER_ID) ? centerX - PLAYER_SPAWN_SIDE_OFFSET : centerX + PLAYER_SPAWN_SIDE_OFFSET;
 
-        float x = MathUtils.random(minX, maxX);
-        float y = MathUtils.random(minY, maxY);
-
-        players.put(playerId, new Player(x, y, new GameSettings(), false));
+        players.put(playerId, new Player(x, bottomY, new GameSettings(), false));
     }
 
     public void removePlayer(int playerId) {

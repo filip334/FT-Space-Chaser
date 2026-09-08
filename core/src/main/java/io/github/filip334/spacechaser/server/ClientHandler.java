@@ -1,5 +1,11 @@
 package io.github.filip334.spacechaser.server;
 
+import io.github.filip334.spacechaser.network.message.JoinLobbyMessage;
+import io.github.filip334.spacechaser.network.message.NetworkMessage;
+import io.github.filip334.spacechaser.network.message.PauseMessage;
+import io.github.filip334.spacechaser.network.message.PlayerInputMessage;
+import io.github.filip334.spacechaser.network.message.WelcomeMessage;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;

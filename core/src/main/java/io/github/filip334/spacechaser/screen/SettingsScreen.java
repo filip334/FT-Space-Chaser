@@ -11,7 +11,7 @@ import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.ui.UiPanel;
-import io.github.filip334.spacechaser.world.GameSettings;
+import io.github.filip334.spacechaser.settings.GameSettings;
 
 /**
  * Ekran za podesavanja - promena imena igraca i rebind kontrola (W/A/S/D,

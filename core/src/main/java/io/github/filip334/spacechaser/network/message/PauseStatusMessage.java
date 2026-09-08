@@ -1,4 +1,4 @@
-package io.github.filip334.spacechaser.server;
+package io.github.filip334.spacechaser.network.message;
 
 /** Server -> svi klijenti: trenutno stanje pauze i koji igrac je pauzirao. */
 public class PauseStatusMessage extends NetworkMessage {

@@ -1,13 +1,14 @@
-package io.github.filip334.spacechaser.world;
+package io.github.filip334.spacechaser.network;
 
-import io.github.filip334.spacechaser.server.GameStateSnapshot;
-import io.github.filip334.spacechaser.server.PauseMessage;
-import io.github.filip334.spacechaser.server.PauseStatusMessage;
-import io.github.filip334.spacechaser.server.PlayerInputMessage;
-import io.github.filip334.spacechaser.server.WelcomeMessage;
-import io.github.filip334.spacechaser.server.JoinLobbyMessage;
-import io.github.filip334.spacechaser.server.LobbyStatusMessage;
-import io.github.filip334.spacechaser.server.NetworkMessage;
+import io.github.filip334.spacechaser.network.message.GameStateSnapshot;
+import io.github.filip334.spacechaser.network.message.PauseMessage;
+import io.github.filip334.spacechaser.network.message.PauseStatusMessage;
+import io.github.filip334.spacechaser.network.message.PlayerInputMessage;
+import io.github.filip334.spacechaser.network.message.WelcomeMessage;
+import io.github.filip334.spacechaser.network.message.JoinLobbyMessage;
+import io.github.filip334.spacechaser.network.message.LobbyStatusMessage;
+import io.github.filip334.spacechaser.network.message.NetworkMessage;
+import io.github.filip334.spacechaser.world.MultiplayerGameWorld;
 
 import java.io.EOFException;
 import java.io.IOException;

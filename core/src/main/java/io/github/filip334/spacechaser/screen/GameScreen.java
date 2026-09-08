@@ -21,14 +21,14 @@ import io.github.filip334.spacechaser.entity.Player;
 import io.github.filip334.spacechaser.SpaceChaserGame;
 import io.github.filip334.spacechaser.renderer.HudRenderer;
 import io.github.filip334.spacechaser.server.GameServer;
-import io.github.filip334.spacechaser.server.PlayerInputMessage;
+import io.github.filip334.spacechaser.network.message.PlayerInputMessage;
 import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.world.GameWorld;
-import io.github.filip334.spacechaser.world.GameSettings;
+import io.github.filip334.spacechaser.settings.GameSettings;
 import io.github.filip334.spacechaser.world.GameLayout;
-import io.github.filip334.spacechaser.world.MultiplayerClient;
+import io.github.filip334.spacechaser.network.MultiplayerClient;
 import io.github.filip334.spacechaser.world.MultiplayerGameWorld;
 
 public class GameScreen implements Screen {

@@ -4,7 +4,7 @@ import io.github.filip334.spacechaser.collision.CompoundHitbox;
 import io.github.filip334.spacechaser.component.FuelComponent;
 import io.github.filip334.spacechaser.component.HealthComponent;
 import io.github.filip334.spacechaser.input.InputManager;
-import io.github.filip334.spacechaser.world.GameSettings;
+import io.github.filip334.spacechaser.settings.GameSettings;
 
 public class Player extends Entity{
 
@@ -28,7 +28,10 @@ public class Player extends Entity{
         input = new InputManager(settings, readsKeyboard);
         this.x = x;
         this.y = y;
-        
+        // 90 = "gore" (dirX=cos, dirY=sin) - igrac se spawn-uje pri dnu mape
+        // i treba odmah da gleda ka centru/gore, a ne udesno.
+        this.rotation = 90f;
+
         this.maxSpeed = 1500f;
         this.acceleration = 550f;
         this.boostAcceleration = 950f;

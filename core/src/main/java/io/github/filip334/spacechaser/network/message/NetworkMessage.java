@@ -1,4 +1,4 @@
-package io.github.filip334.spacechaser.server;
+package io.github.filip334.spacechaser.network.message;
 
 import java.io.Serializable;
 

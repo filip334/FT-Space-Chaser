@@ -1,4 +1,4 @@
-package io.github.filip334.spacechaser.server;
+package io.github.filip334.spacechaser.network.message;
 
 /** Klijent -> server: zahtev za pauzu ili nastavak igre. */
 public class PauseMessage extends NetworkMessage {

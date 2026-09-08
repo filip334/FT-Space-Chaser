@@ -1,4 +1,4 @@
-package io.github.filip334.spacechaser.world;
+package io.github.filip334.spacechaser.network;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

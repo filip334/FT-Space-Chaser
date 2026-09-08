@@ -9,12 +9,13 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.TimeUtils;
 import io.github.filip334.spacechaser.SpaceChaserGame;
 import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.ChaseArt;
 import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
-import io.github.filip334.spacechaser.world.HighScoreManager;
+import io.github.filip334.spacechaser.settings.HighScoreManager;
 
 public class MainMenuScreen extends BaseScreen {
 
@@ -26,7 +27,13 @@ public class MainMenuScreen extends BaseScreen {
     private Texture enemyTexture;
     private Texture engineFireTexture;
     private final String statusMessage;
-    private float statusMessageAge = 0f;
+    // Ne mere se od konstruktora/prvog delta-a - konstruktor sinhrono ucitava
+    // 3 teksture + 3 fonta (FreeType generise iznova svaki put, bez kesiranja),
+    // sto moze potrajati i to bi "pojelo" veci deo od 10 sekundi ako bismo
+    // sabirali delta od prvog render() poziva (taj prvi delta ukljucuje i
+    // vreme ucitavanja). Umesto toga, satat se prvi put kad se poruka STVARNO
+    // nacrta na ekranu, pa se broji stvarno proteklo vreme od tog trenutka.
+    private long statusMessageShownAtMillis = -1L;
     private static final float STATUS_MESSAGE_DURATION = 10f;
 
     private final String[] menuItems = {
@@ -78,9 +85,8 @@ public class MainMenuScreen extends BaseScreen {
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
 
-        statusMessageAge += delta;
-
         drawBackground(width, height);
+
         drawTitle(width, height);
         drawEnemy(width, height);
         drawShip(width, height);
@@ -148,19 +154,29 @@ public class MainMenuScreen extends BaseScreen {
     // =========================================================
 
     private void drawMenu(float width, float height) {
+        float scale = computeUiScale(width, height);
+        float buttonWidth = BUTTON_WIDTH * scale;
+        float buttonHeight = BUTTON_HEIGHT * scale;
+        float buttonSpacing = BUTTON_SPACING * scale;
+        float exitExtraGap = EXIT_EXTRA_GAP * scale;
+
+        menuFont.getData().setScale(scale);
+
         float startX = CORNER_MARGIN;
         // Donji levi ugao - EXIT (poslednja stavka) je najnize, sa vecim
         // razmakom od ostalih iznad njega.
         float y = CORNER_MARGIN;
 
         for (int i = menuItems.length - 1; i >= 0; i--) {
-            menuBounds[i].set(startX, y, BUTTON_WIDTH, BUTTON_HEIGHT);
+            menuBounds[i].set(startX, y, buttonWidth, buttonHeight);
             boolean hovered = isMouseOver(menuBounds[i]);
             Buttons.draw(batch, shapeRenderer, menuFont, menuBounds[i], menuItems[i], hovered);
 
-            float gap = (i == menuItems.length - 1) ? EXIT_EXTRA_GAP : BUTTON_SPACING;
-            y += BUTTON_HEIGHT + gap;
+            float gap = (i == menuItems.length - 1) ? exitExtraGap : buttonSpacing;
+            y += buttonHeight + gap;
         }
+
+        menuFont.getData().setScale(1f);
     }
 
     // =========================================================
@@ -180,7 +196,11 @@ public class MainMenuScreen extends BaseScreen {
 
     private void drawStatusMessage(float width, float height) {
         if (statusMessage == null || statusMessage.isEmpty()) return;
-        if (statusMessageAge >= STATUS_MESSAGE_DURATION) return;
+
+        if (statusMessageShownAtMillis < 0) {
+            statusMessageShownAtMillis = TimeUtils.millis();
+        }
+        if (TimeUtils.timeSinceMillis(statusMessageShownAtMillis) >= STATUS_MESSAGE_DURATION * 1000L) return;
 
         // Centrirano, skroz na dnu ekrana - menu i pilot box su u uglovima,
         // ovde po sredini nema sa cim da se preklopi.

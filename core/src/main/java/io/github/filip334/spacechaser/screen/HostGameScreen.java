@@ -12,8 +12,8 @@ import io.github.filip334.spacechaser.SpaceChaserGame;
 import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
-import io.github.filip334.spacechaser.world.LanHostAdvertiser;
-import io.github.filip334.spacechaser.world.MultiplayerClient;
+import io.github.filip334.spacechaser.network.LanHostAdvertiser;
+import io.github.filip334.spacechaser.network.MultiplayerClient;
 
 /**
  * Ekran na kome host ceka da se pridruzi drugi igrac.

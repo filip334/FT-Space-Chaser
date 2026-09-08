@@ -10,9 +10,9 @@ import io.github.filip334.spacechaser.entity.Player;
 import io.github.filip334.spacechaser.entity.Coin;
 import io.github.filip334.spacechaser.entity.Wall;
 import io.github.filip334.spacechaser.renderer.EntityRenderer;
-import io.github.filip334.spacechaser.server.EntityState;
-import io.github.filip334.spacechaser.server.GameStateSnapshot;
-import io.github.filip334.spacechaser.world.GameSettings;
+import io.github.filip334.spacechaser.network.message.EntityState;
+import io.github.filip334.spacechaser.network.message.GameStateSnapshot;
+import io.github.filip334.spacechaser.settings.GameSettings;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;

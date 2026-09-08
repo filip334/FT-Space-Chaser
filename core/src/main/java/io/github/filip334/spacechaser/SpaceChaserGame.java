@@ -3,8 +3,8 @@ package io.github.filip334.spacechaser;
 import com.badlogic.gdx.Game;
 import io.github.filip334.spacechaser.screen.GameScreen;
 import io.github.filip334.spacechaser.screen.MainMenuScreen;
-import io.github.filip334.spacechaser.world.GameSettings;
-import io.github.filip334.spacechaser.world.HighScoreManager;
+import io.github.filip334.spacechaser.settings.GameSettings;
+import io.github.filip334.spacechaser.settings.HighScoreManager;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class SpaceChaserGame extends Game {

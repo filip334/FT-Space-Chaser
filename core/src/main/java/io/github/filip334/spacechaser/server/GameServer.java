@@ -5,6 +5,11 @@ import io.github.filip334.spacechaser.entity.Enemy;
 import io.github.filip334.spacechaser.entity.Player;
 import io.github.filip334.spacechaser.entity.Wall;
 import io.github.filip334.spacechaser.entity.Coin;
+import io.github.filip334.spacechaser.network.message.EntityState;
+import io.github.filip334.spacechaser.network.message.GameStateSnapshot;
+import io.github.filip334.spacechaser.network.message.LobbyStatusMessage;
+import io.github.filip334.spacechaser.network.message.PauseStatusMessage;
+import io.github.filip334.spacechaser.network.message.PlayerInputMessage;
 import io.github.filip334.spacechaser.world.GameWorld;
 
 import java.io.IOException;

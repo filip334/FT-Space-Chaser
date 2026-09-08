@@ -6,11 +6,11 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.math.Rectangle;
-import io.github.filip334.spacechaser.server.LobbyStatusMessage;
+import io.github.filip334.spacechaser.network.message.LobbyStatusMessage;
 import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
-import io.github.filip334.spacechaser.world.MultiplayerClient;
+import io.github.filip334.spacechaser.network.MultiplayerClient;
 
 /** Lobby koji gost vidi nakon konekcije, dok host ne pokrene partiju. */
 public class ClientLobbyScreen extends BaseScreen {

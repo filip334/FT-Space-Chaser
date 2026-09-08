@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.filip334.spacechaser.ui.Background;
 import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.ui.UiPanel;
+import io.github.filip334.spacechaser.world.GameLayout;
 
 /**
  * Zajednicka osnova za "meni-stil" ekrane (Main Menu, Multiplayer, Host/Join/
@@ -113,6 +114,19 @@ public abstract class BaseScreen implements Screen {
         font.draw(batch, "Best (SP) : " + spHighScore, x + 16f, y + boxHeight - 44f);
         font.draw(batch, "Best (MP) : " + mpHighScore, x + 16f, y + boxHeight - 72f);
         batch.end();
+    }
+
+    /**
+     * Razmera UI elemenata fiksne piksel velicine (dugmad, njihov font) u
+     * odnosu na "projektovanu" velicinu prozora (GameLayout.WINDOW_WIDTH/
+     * HEIGHT - ista rezolucija za koju je FitViewport mape podesen). Kad se
+     * prozor smanji/poveca (min. velicina je ogranicena, ali resizable je),
+     * dugmad bi inace ostala ista u pikselima i izgledala nesrazmerno -
+     * pomnozi njihove dimenzije/font ovim faktorom da se smanjuju/povecavaju
+     * proporcionalno sa prozorom.
+     */
+    protected float computeUiScale(float width, float height) {
+        return Math.min(width / GameLayout.WINDOW_WIDTH, height / GameLayout.WINDOW_HEIGHT);
     }
 
     protected boolean isMouseOver(Rectangle bounds) {

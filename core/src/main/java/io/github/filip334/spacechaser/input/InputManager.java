@@ -1,7 +1,7 @@
 package io.github.filip334.spacechaser.input;
 
 import com.badlogic.gdx.Gdx;
-import io.github.filip334.spacechaser.world.GameSettings;
+import io.github.filip334.spacechaser.settings.GameSettings;
 
 public class InputManager{
     private final GameSettings settings;

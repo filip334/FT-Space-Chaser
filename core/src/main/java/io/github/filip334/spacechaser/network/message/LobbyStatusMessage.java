@@ -1,4 +1,4 @@
-package io.github.filip334.spacechaser.server;
+package io.github.filip334.spacechaser.network.message;
 
 public class LobbyStatusMessage extends NetworkMessage {
     private static final long serialVersionUID = 1L;

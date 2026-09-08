@@ -11,7 +11,7 @@ import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.ChaseArt;
 import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
-import io.github.filip334.spacechaser.world.HighScoreManager;
+import io.github.filip334.spacechaser.settings.HighScoreManager;
 
 public class MultiplayerScreen extends BaseScreen {
 
@@ -29,7 +29,7 @@ public class MultiplayerScreen extends BaseScreen {
             "BACK"
     };
 
-    private static final float BUTTON_WIDTH = 320f;
+    private static final float BUTTON_WIDTH = 300f;
     private static final float BUTTON_HEIGHT = 58f;
     private static final float BUTTON_SPACING = 30f;
     private static final float BACK_EXTRA_GAP = 55f;
@@ -146,19 +146,29 @@ public class MultiplayerScreen extends BaseScreen {
     // =========================================================
 
     private void drawMenu(float width, float height) {
+        float scale = computeUiScale(width, height);
+        float buttonWidth = BUTTON_WIDTH * scale;
+        float buttonHeight = BUTTON_HEIGHT * scale;
+        float buttonSpacing = BUTTON_SPACING * scale;
+        float backExtraGap = BACK_EXTRA_GAP * scale;
+
+        menuFont.getData().setScale(scale);
+
         float startX = CORNER_MARGIN;
         // Donji levi ugao - BACK (poslednja stavka) je najnize, sa vecim
         // razmakom od ostalih iznad njega.
         float y = CORNER_MARGIN;
 
         for (int i = menuItems.length - 1; i >= 0; i--) {
-            menuBounds[i].set(startX, y, BUTTON_WIDTH, BUTTON_HEIGHT);
+            menuBounds[i].set(startX, y, buttonWidth, buttonHeight);
             boolean hovered = isMouseOver(menuBounds[i]);
             Buttons.draw(batch, shapeRenderer, menuFont, menuBounds[i], menuItems[i], hovered);
 
-            float gap = (i == menuItems.length - 1) ? BACK_EXTRA_GAP : BUTTON_SPACING;
-            y += BUTTON_HEIGHT + gap;
+            float gap = (i == menuItems.length - 1) ? backExtraGap : buttonSpacing;
+            y += buttonHeight + gap;
         }
+
+        menuFont.getData().setScale(1f);
     }
 
     // =========================================================

@@ -1,4 +1,4 @@
-package io.github.filip334.spacechaser.world;
+package io.github.filip334.spacechaser.settings;
 
 import com.badlogic.gdx.Input;
 
