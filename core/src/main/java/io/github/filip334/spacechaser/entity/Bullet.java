@@ -13,8 +13,8 @@ public class Bullet extends Entity {
     // pripise poene pravom igracu (ne "prvom u redu" po Map iteraciji).
     private int ownerId = -1;
 
-    // ---------------- CONSTRUCTOR ----------------
-    
+    // ---------------- KONSTRUKTORI ----------------
+
     public Bullet() {
     }
 
@@ -42,17 +42,19 @@ public class Bullet extends Entity {
         hitbox.update(this.x, this.y, this.rotation);
     }
     
-    // UPDATE / RENDER
-    
+    // ---------------- UPDATE ----------------
+
     @Override
     public void update(float delta) {
         previousX = x;
         previousY = y;
         x += dirX * delta * acceleration;
         y += dirY * delta * acceleration;
-        
+
         hitbox.update(x, y, rotation);
     }
+
+    // ---------------- NETWORK ----------------
 
     public void setNetworkState(float x, float y, float rotation) {
         this.x = x;
@@ -60,6 +62,8 @@ public class Bullet extends Entity {
         this.rotation = rotation;
         hitbox.update(x, y, rotation);
     }
+
+    // ---------------- GET / SET ----------------
 
     public int getOwnerId() {
         return ownerId;

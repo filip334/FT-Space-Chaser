@@ -14,16 +14,21 @@ public class HudRenderer {
     private final BitmapFont font;
     private final BitmapFont countdownFont;
     private final ShapeRenderer shapeRenderer;
-    //
+    // ---------------- KONSTRUKTOR ----------------
+
     public HudRenderer() {
         font = Fonts.generate(17, Theme.WHITE);
         countdownFont = Fonts.generate(90, Theme.CYAN);
         shapeRenderer = new ShapeRenderer();
     }
 
+    // ---------------- GET / SET ----------------
+
     public void setProjectionMatrix(Matrix4 projectionMatrix) {
         shapeRenderer.setProjectionMatrix(projectionMatrix);
     }
+
+    // ---------------- RENDER ----------------
 
     /** Veliki broj na sredini mape - odbrojavanje pre sledeceg talasa. */
     public void renderCountdown(SpriteBatch batch, int secondsRemaining) {
@@ -40,7 +45,7 @@ public class HudRenderer {
         batch.end();
     }
 
-    // ---------------- HUD ----------------
+    // ---------------- HELPERS ----------------
     private void drawBar(float x, float y, float width, float height,
                          float value, float maxValue, Color fillColor) {
         float percent = value / maxValue;
@@ -74,18 +79,16 @@ public class HudRenderer {
                        float fuel, float maxFuel, int score, float gameTime, int wave) {
         float screenHeight = GameLayout.WINDOW_HEIGHT;
         float barX = (GameLayout.SIDE_PANEL_WIDTH - 220f) / 2f;
-        float healthY = screenHeight - 40f;
-        float fuelY = screenHeight - 75f;
+        float healthY = screenHeight - 60f;
+        float fuelY = screenHeight - 110f;
         drawBar(barX, healthY, 220f, 18f, health, maxHealth, Color.RED);
         drawBar(barX, fuelY, 220f, 18f, fuel, maxFuel, Color.CYAN);
         batch.begin();
         font.draw(batch, "Health", barX, healthY + 35f);
         font.draw(batch, "Fuel", barX, fuelY + 35f);
-        float infoX = GameLayout.SIDE_PANEL_WIDTH + GameLayout.MAP_VIEWPORT_SIZE
-                + (GameLayout.SIDE_PANEL_WIDTH - 220f) / 2f;
-        font.draw(batch, "Score: " + score, infoX, screenHeight - 110f);
-        font.draw(batch, "Time: " + formatTime(gameTime), infoX, screenHeight - 145f);
-        font.draw(batch, "Wave: " + wave, infoX, screenHeight - 180f);
+        font.draw(batch, "Score: " + score, barX, fuelY - 30f);
+        font.draw(batch, "Time: " + formatTime(gameTime), barX, fuelY - 65f);
+        font.draw(batch, "Wave: " + wave, barX, fuelY - 100f);
         batch.end();
     }
 
@@ -106,8 +109,8 @@ public class HudRenderer {
 
         float barWidth = 220f;
         float barHeight = 18f;
-        float healthY = screenHeight - 40f;
-        float fuelY = screenHeight - 75f;
+        float healthY = screenHeight - 60f;
+        float fuelY = screenHeight - 110f;
 
         // ---- LOKALNI IGRAC (levo) ----
         float localX = (GameLayout.SIDE_PANEL_WIDTH - barWidth) / 2f;
@@ -136,9 +139,9 @@ public class HudRenderer {
             font.draw(batch, "Score: " + opponentScore, opponentX, fuelY - 30f);
         }
 
-        font.draw(batch, "Total: " + totalScore, localX, screenHeight - 140f);
-        font.draw(batch, "Time: " + formatTime(gameTime), localX, screenHeight - 175f);
-        font.draw(batch, "Wave: " + wave, localX, screenHeight - 210f);
+        font.draw(batch, "Total: " + totalScore, localX, screenHeight - 160f);
+        font.draw(batch, "Time: " + formatTime(gameTime), localX, screenHeight - 195f);
+        font.draw(batch, "Wave: " + wave, localX, screenHeight - 230f);
 
         batch.end();
     }

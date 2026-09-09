@@ -8,10 +8,9 @@ public class InputManager{
     private final boolean readsKeyboard;
 
     private boolean forward, backward, left, right, shoot, boost;
-    
-    
-    
-    
+
+    // ---------------- KONSTRUKTORI ----------------
+
     public InputManager(GameSettings settings) {
         this(settings, true);
     }
@@ -24,7 +23,9 @@ public class InputManager{
         this.settings = settings;
         this.readsKeyboard = readsKeyboard;
     }
-    
+
+    // ---------------- GET / SET ----------------
+
     public boolean moveForward() {
         return (readsKeyboard && Gdx.input.isKeyPressed(settings.getMoveUp())) || forward;
     }

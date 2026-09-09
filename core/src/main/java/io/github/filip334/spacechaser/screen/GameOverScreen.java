@@ -37,6 +37,8 @@ public class GameOverScreen extends BaseScreen {
     private final Rectangle playAgainButton = new Rectangle();
     private final Rectangle mainMenuButton = new Rectangle();
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public GameOverScreen(Game game, int score, boolean newHighScore, Mode mode) {
         super(game);
         this.score = score;
@@ -48,6 +50,8 @@ public class GameOverScreen extends BaseScreen {
         scoreFont = Fonts.generate(32, Theme.WHITE);
         buttonFont = Fonts.generate(24, Theme.WHITE);
     }
+
+    // ---------------- RENDER ----------------
 
     @Override
     public void render(float delta) {
@@ -108,6 +112,8 @@ public class GameOverScreen extends BaseScreen {
         Buttons.draw(batch, shapeRenderer, buttonFont, mainMenuButton, "Main Menu", isMouseOver(mainMenuButton));
     }
 
+    // ---------------- INPUT ----------------
+
     private void handleInput() {
         if (!Gdx.input.justTouched()) return;
 
@@ -125,6 +131,8 @@ public class GameOverScreen extends BaseScreen {
             navigateTo(new MultiplayerScreen(game));
         }
     }
+
+    // ---------------- DISPOSE ----------------
 
     @Override
     public void dispose() {

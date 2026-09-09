@@ -9,6 +9,7 @@ import com.badlogic.gdx.math.Rectangle;
 import io.github.filip334.spacechaser.SpaceChaserGame;
 import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.Fonts;
+import io.github.filip334.spacechaser.ui.NameEditor;
 import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.ui.UiPanel;
 import io.github.filip334.spacechaser.settings.GameSettings;
@@ -28,8 +29,7 @@ public class SettingsScreen extends BaseScreen {
 
     // IME
     private final Rectangle nameBox = new Rectangle();
-    private boolean editingName;
-    private String nameDraft;
+    private final NameEditor nameEditor;
 
     // KONTROLE - svaki red je jedna vezana akcija (label + trenutni taster)
     private enum Action { MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, SHOOT, BOOST }
@@ -44,6 +44,8 @@ public class SettingsScreen extends BaseScreen {
     private final Rectangle defaultButton = new Rectangle();
     private final Rectangle backButton = new Rectangle();
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public SettingsScreen(Game game) {
         super(game);
         this.settings = ((SpaceChaserGame) game).getSettings();
@@ -52,12 +54,14 @@ public class SettingsScreen extends BaseScreen {
         labelFont = Fonts.generate(16, Theme.CYAN_DIM);
         rowFont = Fonts.generate(20, Theme.WHITE);
 
-        nameDraft = settings.getPlayerName();
+        nameEditor = new NameEditor(settings);
 
         for (int i = 0; i < actionBounds.length; i++) {
             actionBounds[i] = new Rectangle();
         }
     }
+
+    // ---------------- RENDER ----------------
 
     @Override
     public void render(float delta) {
@@ -88,9 +92,7 @@ public class SettingsScreen extends BaseScreen {
         handleInput();
     }
 
-    // =========================================================
-    // IME
-    // =========================================================
+    // ---------------- IME ----------------
 
     /** @return Y koordinata ispod ovog dela, za sledeci element u redosledu. */
     private float drawNameSection(float startX, float cursorY) {
@@ -105,66 +107,18 @@ public class SettingsScreen extends BaseScreen {
         float boxY = boxTop - boxHeight;
         nameBox.set(startX, boxY, boxWidth, boxHeight);
 
-        UiPanel.draw(shapeRenderer, nameBox.x, nameBox.y, nameBox.width, nameBox.height, editingName);
+        UiPanel.draw(shapeRenderer, nameBox.x, nameBox.y, nameBox.width, nameBox.height, nameEditor.isEditing());
 
         batch.begin();
-        rowFont.setColor(editingName ? Theme.WHITE : Theme.CYAN);
-        String displayed = editingName ? nameDraft + "|" : nameDraft;
+        rowFont.setColor(nameEditor.isEditing() ? Theme.WHITE : Theme.CYAN);
         float textY = boxY + boxHeight / 2f + rowFont.getCapHeight() / 2f;
-        rowFont.draw(batch, displayed, startX + 14f, textY);
+        rowFont.draw(batch, nameEditor.getDisplayText(), startX + 14f, textY);
         batch.end();
 
         return boxY;
     }
 
-    private void beginNameEditing() {
-        if (editingName) return;
-        cancelRebind();
-        editingName = true;
-        nameDraft = settings.getPlayerName();
-        Gdx.input.setInputProcessor(new InputAdapter() {
-            @Override
-            public boolean keyDown(int keycode) {
-                if (keycode == Input.Keys.BACKSPACE) {
-                    if (!nameDraft.isEmpty()) {
-                        nameDraft = nameDraft.substring(0, nameDraft.length() - 1);
-                    }
-                    return true;
-                }
-                if (keycode == Input.Keys.ENTER) {
-                    finishNameEditing();
-                    return true;
-                }
-                if (keycode == Input.Keys.ESCAPE) {
-                    editingName = false;
-                    Gdx.input.setInputProcessor(null);
-                    return true;
-                }
-                return false;
-            }
-
-            @Override
-            public boolean keyTyped(char character) {
-                if (character >= 32 && character != 127 && nameDraft.length() < 16) {
-                    nameDraft += character;
-                    return true;
-                }
-                return false;
-            }
-        });
-    }
-
-    private void finishNameEditing() {
-        if (!editingName) return;
-        settings.setPlayerName(nameDraft);
-        nameDraft = settings.getPlayerName();
-        editingName = false;
-        Gdx.input.setInputProcessor(null);
-    }
-
-    // =========================================================
-    // KONTROLE
-    // =========================================================
+    // ---------------- KONTROLE ----------------
 
     private static final float ROW_SPACING = 50f;
     private static final float ROW_HEIGHT = 38f;
@@ -199,6 +153,8 @@ public class SettingsScreen extends BaseScreen {
         return cursorY - (actions.length - 1) * ROW_SPACING;
     }
 
+    // ---------------- GET / SET ----------------
+
     private int getKeyFor(Action action) {
         switch (action) {
             case MOVE_UP: return settings.getMoveUp();
@@ -223,7 +179,7 @@ public class SettingsScreen extends BaseScreen {
     }
 
     private void beginRebind(Action action) {
-        finishNameEditing();
+        nameEditor.finish();
         rebindingAction = action;
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
@@ -246,9 +202,7 @@ public class SettingsScreen extends BaseScreen {
         Gdx.input.setInputProcessor(null);
     }
 
-    // =========================================================
-    // DEFAULT / BACK
-    // =========================================================
+    // ---------------- DEFAULT / BACK ----------------
 
     // Back je "izlazna" akcija - veci razmak od Default nego sto bi ga
     // odvajao od bilo kog drugog susednog dugmeta.
@@ -263,9 +217,7 @@ public class SettingsScreen extends BaseScreen {
         Buttons.draw(batch, shapeRenderer, rowFont, backButton, "Back", isMouseOver(backButton));
     }
 
-    // =========================================================
-    // INPUT
-    // =========================================================
+    // ---------------- INPUT ----------------
 
     private void handleInput() {
         if (!Gdx.input.justTouched()) {
@@ -276,44 +228,45 @@ public class SettingsScreen extends BaseScreen {
         float mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
 
         if (nameBox.contains(mouseX, mouseY)) {
-            beginNameEditing();
+            cancelRebind();
+            nameEditor.begin();
             return;
         }
 
         for (int i = 0; i < actionBounds.length; i++) {
             if (actionBounds[i].contains(mouseX, mouseY)) {
-                finishNameEditing();
+                nameEditor.finish();
                 beginRebind(actions[i]);
                 return;
             }
         }
 
         if (defaultButton.contains(mouseX, mouseY)) {
-            finishNameEditing();
+            nameEditor.finish();
             cancelRebind();
             settings.resetControlsToDefault();
             return;
         }
 
         if (backButton.contains(mouseX, mouseY)) {
-            finishNameEditing();
+            nameEditor.finish();
             cancelRebind();
             navigateTo(new MainMenuScreen(game));
             return;
         }
 
-        finishNameEditing();
+        nameEditor.finish();
     }
 
-    // =========================================================
-    // SCREEN METHODS
-    // =========================================================
+    // ---------------- SCREEN METHODS ----------------
 
     @Override
     public void hide() {
-        finishNameEditing();
+        nameEditor.finish();
         cancelRebind();
     }
+
+    // ---------------- DISPOSE ----------------
 
     @Override
     public void dispose() {

@@ -9,6 +9,8 @@ public class PathFinder {
     private final int width;
     private final int height;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public PathFinder(boolean[][] walkable) {
 
         height = walkable.length;
@@ -27,6 +29,8 @@ public class PathFinder {
             }
         }
     }
+
+    // ---------------- PATHFINDING (A*) ----------------
 
     public Array<GridNode> findPath(int startX,int startY,int targetX,int targetY){
 
@@ -93,6 +97,8 @@ public class PathFinder {
 
         return new Array<>();
     }
+
+    // ---------------- HELPERS ----------------
 
     private void resetSearchState() {
         for (int x = 0; x < width; x++) {

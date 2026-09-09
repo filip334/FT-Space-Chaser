@@ -50,6 +50,8 @@ public class StartupHelper {
 
 	private static final String JVM_RESTARTED_ARG = "jvmIsRestarted";
 
+	// ---------------- OS DETECTION ----------------
+
 	/**
 	 * Must only be called on Linux. Check OS first (or use short-circuit evaluation)!
 	 * @return whether NVIDIA drivers are present on Linux.
@@ -61,6 +63,8 @@ public class StartupHelper {
 		if (drivers == null) return false;
 		return drivers.length > 0;
 	}
+
+	// ---------------- STARTUP ENTRY POINTS ----------------
 
 	/**
 	 * Applies the utilities as described by {@link StartupHelper}'s Javadoc.
@@ -127,6 +131,8 @@ public class StartupHelper {
 		}
 		return startNewJvm0(/*isMac =*/ false, inheritIO);
 	}
+
+	// ---------------- JVM RELAUNCH ----------------
 
 	private static final String MAC_JRE_ERR_MSG = "A Java installation could not be found. If you are distributing this app with a bundled JRE, be sure to set the '-XstartOnFirstThread' argument manually!";
 	private static final String LINUX_JRE_ERR_MSG = "A Java installation could not be found. If you are distributing this app with a bundled JRE, be sure to set the environment variable '__GL_THREADED_OPTIMIZATIONS' to '0'!";
@@ -214,6 +220,8 @@ public class StartupHelper {
 
 		return true;
 	}
+
+	// ---------------- HELPERS ----------------
 
 	private static String getJreErrMsg(boolean isMac) {
 		if (isMac) return MAC_JRE_ERR_MSG;

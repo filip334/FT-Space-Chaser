@@ -7,7 +7,7 @@ import io.github.filip334.spacechaser.collision.CompoundHitbox;
 
 public class Wall extends Entity {
     
-    // ---------------- CONSTRUCTOR ----------------
+    // ---------------- KONSTRUKTOR ----------------
     public Wall(float x, float y, float width, float height) {
 
         this.x = x;

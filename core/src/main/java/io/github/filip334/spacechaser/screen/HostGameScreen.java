@@ -41,12 +41,16 @@ public class HostGameScreen extends BaseScreen {
     private final Rectangle backButton = new Rectangle();
     private static final float CORNER_MARGIN = 30f;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public HostGameScreen(Game game) {
         super(game);
         font = Fonts.generate(26, Theme.WHITE);
         buttonFont = Fonts.generate(24, Theme.WHITE);
         hostName = ((SpaceChaserGame) game).getSettings().getPlayerName();
     }
+
+    // ---------------- LOBBY SETUP ----------------
 
     @Override
     public void show() {
@@ -79,6 +83,8 @@ public class HostGameScreen extends BaseScreen {
             cancelAndGoBack();
         }
     }
+
+    // ---------------- RENDER ----------------
 
     @Override
     public void render(float delta) {
@@ -176,6 +182,8 @@ public class HostGameScreen extends BaseScreen {
         Buttons.draw(batch, shapeRenderer, buttonFont, backButton, label, hovered);
     }
 
+    // ---------------- INPUT ----------------
+
     private void handleInput() {
         boolean ready = started && server.getConnectedPlayerCount() >= MAX_PLAYERS;
 
@@ -205,6 +213,8 @@ public class HostGameScreen extends BaseScreen {
 
         navigateTo(new MultiplayerScreen(game));
     }
+
+    // ---------------- DISPOSE ----------------
 
     @Override
     public void dispose() {

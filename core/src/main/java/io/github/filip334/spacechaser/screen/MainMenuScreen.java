@@ -2,8 +2,6 @@ package io.github.filip334.spacechaser.screen;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -11,9 +9,9 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.TimeUtils;
 import io.github.filip334.spacechaser.SpaceChaserGame;
-import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.ChaseArt;
 import io.github.filip334.spacechaser.ui.Fonts;
+import io.github.filip334.spacechaser.ui.NameEditor;
 import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.settings.HighScoreManager;
 
@@ -51,8 +49,9 @@ public class MainMenuScreen extends BaseScreen {
 
     private final Rectangle[] menuBounds;
     private final Rectangle pilotBox = new Rectangle();
-    private boolean editingName;
-    private String nameDraft;
+    private final NameEditor nameEditor;
+
+    // ---------------- KONSTRUKTORI ----------------
 
     public MainMenuScreen(Game game) {
         this(game, null);
@@ -75,8 +74,10 @@ public class MainMenuScreen extends BaseScreen {
             menuBounds[i] = new Rectangle();
         }
 
-        nameDraft = ((SpaceChaserGame) game).getSettings().getPlayerName();
+        nameEditor = new NameEditor(((SpaceChaserGame) game).getSettings());
     }
+
+    // ---------------- RENDER ----------------
 
     @Override
     public void render(float delta) {
@@ -97,9 +98,7 @@ public class MainMenuScreen extends BaseScreen {
         handleInput(width, height);
     }
 
-    // =========================================================
-    // TITLE
-    // =========================================================
+    // ---------------- TITLE ----------------
 
     private void drawTitle(float width, float height) {
         String title = "FT - SPACE CHASER";
@@ -124,9 +123,7 @@ public class MainMenuScreen extends BaseScreen {
         drawGlowLine(x, underlineY, layout.width, 3f);
     }
 
-    // =========================================================
-    // SHIP / ENEMY
-    // =========================================================
+    // ---------------- SHIP / ENEMY ----------------
 
     private void drawShip(float width, float height) {
         float shipHeight = height * 0.62f;
@@ -149,50 +146,27 @@ public class MainMenuScreen extends BaseScreen {
         ChaseArt.drawEnemy(batch, enemyTexture, engineFireTexture, centerX, centerY, enemyHeight, 0.85f);
     }
 
-    // =========================================================
-    // MENU
-    // =========================================================
+    // ---------------- MENU ----------------
 
     private void drawMenu(float width, float height) {
         float scale = computeUiScale(width, height);
-        float buttonWidth = BUTTON_WIDTH * scale;
-        float buttonHeight = BUTTON_HEIGHT * scale;
-        float buttonSpacing = BUTTON_SPACING * scale;
-        float exitExtraGap = EXIT_EXTRA_GAP * scale;
-
         menuFont.getData().setScale(scale);
 
-        float startX = CORNER_MARGIN;
-        // Donji levi ugao - EXIT (poslednja stavka) je najnize, sa vecim
-        // razmakom od ostalih iznad njega.
-        float y = CORNER_MARGIN;
-
-        for (int i = menuItems.length - 1; i >= 0; i--) {
-            menuBounds[i].set(startX, y, buttonWidth, buttonHeight);
-            boolean hovered = isMouseOver(menuBounds[i]);
-            Buttons.draw(batch, shapeRenderer, menuFont, menuBounds[i], menuItems[i], hovered);
-
-            float gap = (i == menuItems.length - 1) ? exitExtraGap : buttonSpacing;
-            y += buttonHeight + gap;
-        }
+        drawVerticalMenu(menuFont, menuItems, menuBounds, CORNER_MARGIN, CORNER_MARGIN,
+                BUTTON_WIDTH * scale, BUTTON_HEIGHT * scale, BUTTON_SPACING * scale, EXIT_EXTRA_GAP * scale);
 
         menuFont.getData().setScale(1f);
     }
 
-    // =========================================================
-    // PILOT / BEST SCORE
-    // =========================================================
+    // ---------------- PILOT / BEST SCORE ----------------
 
     private void drawPilot(float width, float height) {
         HighScoreManager highScores = ((SpaceChaserGame) game).getHighScoreManager();
-        String displayedName = editingName ? nameDraft + "|" : nameDraft;
-        drawPilotBox(pilotBox, smallFont, displayedName, editingName,
+        drawPilotBox(pilotBox, smallFont, nameEditor.getDisplayText(), nameEditor.isEditing(),
                 highScores.getSingleplayerHighScore(), highScores.getMultiplayerHighScore());
     }
 
-    // =========================================================
-    // STATUS MESSAGE
-    // =========================================================
+    // ---------------- STATUS MESSAGE ----------------
 
     private void drawStatusMessage(float width, float height) {
         if (statusMessage == null || statusMessage.isEmpty()) return;
@@ -233,9 +207,7 @@ public class MainMenuScreen extends BaseScreen {
         batch.end();
     }
 
-    // =========================================================
-    // INPUT
-    // =========================================================
+    // ---------------- INPUT ----------------
 
     private void handleInput(float width, float height) {
         if (!Gdx.input.justTouched()) {
@@ -246,11 +218,11 @@ public class MainMenuScreen extends BaseScreen {
         float mouseY = height - Gdx.input.getY();
 
         if (pilotBox.contains(mouseX, mouseY)) {
-            beginNameEditing();
+            nameEditor.begin();
             return;
         }
 
-        finishNameEditing();
+        nameEditor.finish();
 
         for (int i = 0; i < menuBounds.length; i++) {
             if (!menuBounds[i].contains(mouseX, mouseY)) continue;
@@ -272,57 +244,11 @@ public class MainMenuScreen extends BaseScreen {
         }
     }
 
-    private void beginNameEditing() {
-        if (editingName) return;
-        editingName = true;
-        nameDraft = ((SpaceChaserGame) game).getSettings().getPlayerName();
-        Gdx.input.setInputProcessor(new InputAdapter() {
-            @Override
-            public boolean keyDown(int keycode) {
-                if (keycode == Input.Keys.BACKSPACE) {
-                    if (!nameDraft.isEmpty()) {
-                        nameDraft = nameDraft.substring(0, nameDraft.length() - 1);
-                    }
-                    return true;
-                }
-                if (keycode == Input.Keys.ENTER) {
-                    finishNameEditing();
-                    return true;
-                }
-                if (keycode == Input.Keys.ESCAPE) {
-                    editingName = false;
-                    Gdx.input.setInputProcessor(null);
-                    return true;
-                }
-                return false;
-            }
-
-            @Override
-            public boolean keyTyped(char character) {
-                if (character >= 32 && character != 127 && nameDraft.length() < 16) {
-                    nameDraft += character;
-                    return true;
-                }
-                return false;
-            }
-        });
-    }
-
-    private void finishNameEditing() {
-        if (!editingName) return;
-        ((SpaceChaserGame) game).getSettings().setPlayerName(nameDraft);
-        nameDraft = ((SpaceChaserGame) game).getSettings().getPlayerName();
-        editingName = false;
-        Gdx.input.setInputProcessor(null);
-    }
-
-    // =========================================================
-    // SCREEN METHODS
-    // =========================================================
+    // ---------------- SCREEN METHODS ----------------
 
     @Override
     public void hide() {
-        finishNameEditing();
+        nameEditor.finish();
     }
 
     @Override

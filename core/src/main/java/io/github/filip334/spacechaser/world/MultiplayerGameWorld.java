@@ -16,8 +16,11 @@ import io.github.filip334.spacechaser.settings.GameSettings;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Client-side "glupi" svet za multiplayer - ne pokrece enemy AI ni kolizije,
@@ -43,10 +46,14 @@ public class MultiplayerGameWorld {
     private volatile int wave = 0;
     private volatile float waveCountdown = 0f;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public MultiplayerGameWorld(Texture playerIdleTexture, Texture flameSheet,
                                  Texture enemyTexture, Texture bulletTexture) {
         entityRenderer = new EntityRenderer(playerIdleTexture, flameSheet, enemyTexture, bulletTexture);
     }
+
+    // ---------------- UPDATE ----------------
 
     /**
      * Poziva se jednom po frejmu iz GameScreen-a da animacija odmice, kao i
@@ -60,6 +67,8 @@ public class MultiplayerGameWorld {
         }
     }
 
+    // ---------------- GET / SET ----------------
+
     public void setLocalPlayerId(int id) {
         this.localPlayerId = id;
     }
@@ -67,6 +76,8 @@ public class MultiplayerGameWorld {
     public int getLocalPlayerId() {
         return localPlayerId;
     }
+
+    // ---------------- SNAPSHOT SYNC ----------------
 
     public synchronized void applySnapshot(GameStateSnapshot snapshot) {
         syncPlayers(snapshot);
@@ -83,59 +94,28 @@ public class MultiplayerGameWorld {
     }
 
     private void syncPlayers(GameStateSnapshot snapshot) {
-        Set<Integer> ids = new HashSet<>();
-
-        for (EntityState state : snapshot.players) {
-            ids.add(state.id);
-
-            Player p = players.get(state.id);
-            if (p == null) {
-                p = new Player(state.x, state.y, new GameSettings(), false);
-                players.put(state.id, p);
-            }
-            p.setNetworkState(state.x, state.y, state.rotation);
-            p.setNetworkHealth(state.health);
-            p.setNetworkFuel(state.fuel);
-            p.setNetworkThrusting(state.thrusting);
-            p.setNetworkBoosting(state.boosting);
-            p.setNetworkScore(state.score);
-        }
-
-        players.keySet().retainAll(ids);
+        syncEntities(snapshot.players, players,
+                state -> new Player(state.x, state.y, new GameSettings(), false),
+                (p, state) -> {
+                    p.setNetworkState(state.x, state.y, state.rotation);
+                    p.setNetworkHealth(state.health);
+                    p.setNetworkFuel(state.fuel);
+                    p.setNetworkThrusting(state.thrusting);
+                    p.setNetworkBoosting(state.boosting);
+                    p.setNetworkScore(state.score);
+                });
     }
 
     private void syncEnemies(GameStateSnapshot snapshot) {
-        Set<Integer> ids = new HashSet<>();
-
-        for (EntityState state : snapshot.enemies) {
-            ids.add(state.id);
-
-            Enemy e = enemies.get(state.id);
-            if (e == null) {
-                e = new Enemy(state.x, state.y);
-                enemies.put(state.id, e);
-            }
-            e.setNetworkState(state.x, state.y, state.rotation);
-        }
-
-        enemies.keySet().retainAll(ids);
+        syncEntities(snapshot.enemies, enemies,
+                state -> new Enemy(state.x, state.y),
+                (e, state) -> e.setNetworkState(state.x, state.y, state.rotation));
     }
 
     private void syncBullets(GameStateSnapshot snapshot) {
-        Set<Integer> ids = new HashSet<>();
-
-        for (EntityState state : snapshot.bullets) {
-            ids.add(state.id);
-
-            Bullet b = bullets.get(state.id);
-            if (b == null) {
-                b = new Bullet(state.x, state.y, 0f, 0f, state.rotation);
-                bullets.put(state.id, b);
-            }
-            b.setNetworkState(state.x, state.y, state.rotation);
-        }
-
-        bullets.keySet().retainAll(ids);
+        syncEntities(snapshot.bullets, bullets,
+                state -> new Bullet(state.x, state.y, 0f, 0f, state.rotation),
+                (b, state) -> b.setNetworkState(state.x, state.y, state.rotation));
     }
 
     private void syncWalls(GameStateSnapshot snapshot) {
@@ -143,17 +123,8 @@ public class MultiplayerGameWorld {
         // praznu listu u svim ostalim snapshotovima, ne brisi ono sto vec imamo.
         if (!snapshot.wallsIncluded) return;
 
-        Set<Integer> ids = new HashSet<>();
-
-        for (EntityState state : snapshot.walls) {
-            ids.add(state.id);
-
-            if (!walls.containsKey(state.id)) {
-                walls.put(state.id, new Wall(state.x, state.y, state.width, state.height));
-            }
-        }
-
-        walls.keySet().retainAll(ids);
+        syncEntities(snapshot.walls, walls,
+                state -> new Wall(state.x, state.y, state.width, state.height), null);
     }
 
     private void syncCoins(GameStateSnapshot snapshot) {
@@ -161,15 +132,38 @@ public class MultiplayerGameWorld {
         // listu u svim ostalim snapshotovima, ne brisi ono sto vec imamo.
         if (!snapshot.coinsChanged) return;
 
+        syncEntities(snapshot.coins, coins,
+                state -> new Coin(state.id, state.x, state.y), null);
+    }
+
+    /**
+     * Zajednicka logika za sve sync* metode iznad - upisi/dodaj entitet za
+     * svaki EntityState iz snapshot-a, pa ukloni sve sto vise nije u listi
+     * (server ga je uklonio - npr. metak je pogodio, novcic pokupljen).
+     * updater je null za zidove/novcice - oni se samo jednom postave i
+     * nikad kasnije ne menjaju.
+     */
+    private <T> void syncEntities(List<EntityState> states, Map<Integer, T> map,
+                                   Function<EntityState, T> factory, BiConsumer<T, EntityState> updater) {
         Set<Integer> ids = new HashSet<>();
-        for (EntityState state : snapshot.coins) {
+
+        for (EntityState state : states) {
             ids.add(state.id);
-            if (!coins.containsKey(state.id)) {
-                coins.put(state.id, new Coin(state.id, state.x, state.y));
+
+            T entity = map.get(state.id);
+            if (entity == null) {
+                entity = factory.apply(state);
+                map.put(state.id, entity);
+            }
+            if (updater != null) {
+                updater.accept(entity, state);
             }
         }
-        coins.keySet().retainAll(ids);
+
+        map.keySet().retainAll(ids);
     }
+
+    // ---------------- RENDER ----------------
 
     public synchronized void render(SpriteBatch batch) {
         for (Player p : players.values()) {
@@ -197,6 +191,8 @@ public class MultiplayerGameWorld {
         shapeRenderer.end();
         shapeRenderer.setTransformMatrix(new Matrix4());
     }
+
+    // ---------------- GET / SET ----------------
 
     public synchronized Player getLocalPlayer() {
         return players.get(localPlayerId);
@@ -238,6 +234,8 @@ public class MultiplayerGameWorld {
     public float getWaveCountdownSeconds() {
         return waveCountdown;
     }
+
+    // ---------------- DISPOSE ----------------
 
     public void dispose() {
         entityRenderer.dispose();

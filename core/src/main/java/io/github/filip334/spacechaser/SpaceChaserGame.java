@@ -14,6 +14,8 @@ public class SpaceChaserGame extends Game {
     // zato se pravi u create(), ne kao eager polje.
     private HighScoreManager highScoreManager;
 
+    // ---------------- GET / SET ----------------
+
     public GameSettings getSettings() {
         return settings;
     }
@@ -21,6 +23,8 @@ public class SpaceChaserGame extends Game {
     public HighScoreManager getHighScoreManager() {
         return highScoreManager;
     }
+
+    // ---------------- KONSTRUKTOR / CREATE ----------------
 
    @Override
     public void create() {

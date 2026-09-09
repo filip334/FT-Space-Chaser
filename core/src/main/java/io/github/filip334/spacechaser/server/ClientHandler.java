@@ -23,11 +23,15 @@ public class ClientHandler implements Runnable {
     private ObjectInputStream in;
     private volatile boolean running = false;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public ClientHandler(Socket socket, GameServer server, int playerId) {
         this.socket = socket;
         this.server = server;
         this.playerId = playerId;
     }
+
+    // ---------------- RUN ----------------
 
     @Override
     public void run() {
@@ -53,6 +57,8 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    // ---------------- LISTEN LOOP ----------------
+
     private void listenLoop() {
         try {
             while (running) {
@@ -76,6 +82,8 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    // ---------------- SEND ----------------
+
     public synchronized void send(NetworkMessage message) {
         if (!running) return;
         try {
@@ -88,6 +96,8 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    // ---------------- DISPOSE ----------------
+
     public void disconnect() {
         if (!running) return;
         running = false;
@@ -96,6 +106,8 @@ public class ClientHandler implements Runnable {
         } catch (IOException ignored) {}
         server.onPlayerDisconnected(playerId);
     }
+
+    // ---------------- GET / SET ----------------
 
     public int getPlayerId() {
         return playerId;

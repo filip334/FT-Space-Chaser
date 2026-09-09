@@ -16,6 +16,8 @@ public final class Buttons {
     private Buttons() {
     }
 
+    // ---------------- DRAW ----------------
+
     /** Crta dugme unutar vec postavljenih bounds. enabled=false crta prigusenu/neklikabilnu verziju (vidi UiPanel). */
     public static void draw(SpriteBatch batch, ShapeRenderer shapeRenderer, BitmapFont font,
                              Rectangle bounds, String label, boolean hovered, boolean enabled) {
@@ -35,6 +37,8 @@ public final class Buttons {
                              Rectangle bounds, String label, boolean hovered) {
         draw(batch, shapeRenderer, font, bounds, label, hovered, true);
     }
+
+    // ---------------- LAYOUT ----------------
 
     /**
      * SAMO postavlja bounds (fiksna sirina/visina, centrirano na centerX,

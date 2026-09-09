@@ -19,12 +19,16 @@ public class HighScoreManager {
     private int highScoreSingleplayer;
     private int highScoreMultiplayer;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public HighScoreManager() {
         prefs = Gdx.app.getPreferences(PREFS_NAME);
         highScoreSingleplayer = prefs.getInteger(KEY_HIGH_SCORE_SINGLEPLAYER, 0);
         highScoreMultiplayer = prefs.getInteger(KEY_HIGH_SCORE_MULTIPLAYER, 0);
         migrateLegacyScore();
     }
+
+    // ---------------- LEGACY MIGRATION ----------------
 
     /**
      * Pre razdvajanja je postojao samo jedan zajednicki rekord - preselimo ga
@@ -43,6 +47,8 @@ public class HighScoreManager {
         prefs.flush();
     }
 
+    // ---------------- GET / SET ----------------
+
     public int getSingleplayerHighScore() {
         return highScoreSingleplayer;
     }
@@ -50,6 +56,8 @@ public class HighScoreManager {
     public int getMultiplayerHighScore() {
         return highScoreMultiplayer;
     }
+
+    // ---------------- REPORT SCORE ----------------
 
     /**
      * Prijavljuje trenutni skor singleplayer partije - ako je novi rekord,

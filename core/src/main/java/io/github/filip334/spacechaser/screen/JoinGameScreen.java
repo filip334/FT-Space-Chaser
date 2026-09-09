@@ -33,11 +33,15 @@ public class JoinGameScreen extends BaseScreen {
     private volatile boolean scanning = false;
     private boolean connecting = false;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public JoinGameScreen(Game game) {
         super(game);
         titleFont = Fonts.generate(30, Theme.WHITE);
         font = Fonts.generate(18, Theme.WHITE);
     }
+
+    // ---------------- LAN DISCOVERY ----------------
 
     @Override
     public void show() {
@@ -59,6 +63,8 @@ public class JoinGameScreen extends BaseScreen {
         scanThread.setDaemon(true);
         scanThread.start();
     }
+
+    // ---------------- RENDER ----------------
 
     @Override
     public void render(float delta) {
@@ -118,6 +124,8 @@ public class JoinGameScreen extends BaseScreen {
         handleInput();
     }
 
+    // ---------------- INPUT ----------------
+
     private void handleInput() {
         if (connecting) return;
         if (!Gdx.input.justTouched()) return;
@@ -162,6 +170,8 @@ public class JoinGameScreen extends BaseScreen {
         connectThread.setDaemon(true);
         connectThread.start();
     }
+
+    // ---------------- DISPOSE ----------------
 
     @Override
     public void dispose() {

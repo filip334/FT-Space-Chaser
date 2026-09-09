@@ -5,14 +5,15 @@ public class FuelComponent {
     private float maxFuel;
     private float fuel;
 
-    // ---------------- CONSTRUCTOR ----------------
-    
+    // ---------------- KONSTRUKTOR ----------------
+
     public FuelComponent(float maxFuel) {
         this.maxFuel = maxFuel;
         this.fuel = maxFuel;
     }
-    
-    
+
+    // ---------------- FUEL MANAGEMENT ----------------
+
     public void consume(float amount){
         fuel -= amount;
 
@@ -28,8 +29,8 @@ public class FuelComponent {
             fuel = maxFuel;
     }
 
-    // GETERI / SETERI
-    
+    // ---------------- GET / SET ----------------
+
     public float getMaxFuel() {
         return maxFuel;
     }

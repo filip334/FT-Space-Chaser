@@ -19,11 +19,15 @@ public class LanGameDiscovery {
     private static final String DISCOVER_REQUEST = "SPACECHASER_DISCOVER";
     private static final String RESPONSE_PREFIX = "SPACECHASER_HOST";
 
+    // ---------------- DISCOVERED HOST ----------------
+
     public static class DiscoveredHost {
         public final String address;
         public final int port;
         public final String hostName;
         public final String gameMode;
+
+        // ---------------- KONSTRUKTOR ----------------
 
         public DiscoveredHost(String address, int port, String hostName, String gameMode) {
             this.address = address;
@@ -32,6 +36,8 @@ public class LanGameDiscovery {
             this.gameMode = gameMode;
         }
     }
+
+    // ---------------- SCAN ----------------
 
     public List<DiscoveredHost> scan(int timeoutMillis) {
         List<DiscoveredHost> results = new ArrayList<>();

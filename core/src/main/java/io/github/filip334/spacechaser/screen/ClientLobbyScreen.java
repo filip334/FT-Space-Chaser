@@ -28,6 +28,8 @@ public class ClientLobbyScreen extends BaseScreen {
     private final Rectangle leaveButton = new Rectangle();
     private static final float CORNER_MARGIN = 30f;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public ClientLobbyScreen(Game game, MultiplayerClient client) {
         super(game);
         this.client = client;
@@ -36,6 +38,8 @@ public class ClientLobbyScreen extends BaseScreen {
         client.setOnLobbyStatus(this::applyLobbyStatus);
     }
 
+    // ---------------- LOBBY STATUS ----------------
+
     private void applyLobbyStatus(LobbyStatusMessage status) {
         hostName = status.hostName;
         gameMode = status.gameMode;
@@ -43,6 +47,8 @@ public class ClientLobbyScreen extends BaseScreen {
         countingDown = status.countingDown;
         countdownRemaining = status.countdownRemaining;
     }
+
+    // ---------------- RENDER ----------------
 
     @Override
     public void render(float delta) {
@@ -97,6 +103,8 @@ public class ClientLobbyScreen extends BaseScreen {
         Buttons.draw(batch, shapeRenderer, font, leaveButton, label, hovered);
     }
 
+    // ---------------- INPUT ----------------
+
     private void handleInput() {
         if ((Gdx.input.justTouched() && isMouseOver(leaveButton))
                 || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -104,6 +112,8 @@ public class ClientLobbyScreen extends BaseScreen {
             navigateTo(new MultiplayerScreen(game));
         }
     }
+
+    // ---------------- DISPOSE ----------------
 
     @Override
     public void dispose() {

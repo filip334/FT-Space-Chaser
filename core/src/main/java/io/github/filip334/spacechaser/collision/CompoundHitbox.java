@@ -62,7 +62,7 @@ public class CompoundHitbox {
         return false;
     }
 
-    // ---------------- GET/SET ----------------
+    // ---------------- GET / SET ----------------
     public Array<Polygon> getWorldBoxes() {
         return worldBoxes;
     }

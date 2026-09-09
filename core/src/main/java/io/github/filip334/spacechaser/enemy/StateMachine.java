@@ -6,6 +6,8 @@ public class StateMachine {
 
     private EnemyState currentState;
 
+    // ---------------- STATE TRANSITIONS ----------------
+
     public void changeState(Enemy enemy, EnemyState newState) {
 
         if (newState == null) {
@@ -19,6 +21,8 @@ public class StateMachine {
         currentState = newState;
         currentState.enter(enemy);
     }
+
+    // ---------------- UPDATE ----------------
 
     public void update(Enemy enemy, float delta) {
 

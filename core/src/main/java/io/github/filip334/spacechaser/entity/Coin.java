@@ -5,6 +5,8 @@ public class Coin extends Entity {
 
     private final int id;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public Coin(int id, float x, float y) {
         this.id = id;
         this.x = x;
@@ -13,12 +15,16 @@ public class Coin extends Entity {
         this.height = RADIUS * 2f;
     }
 
+    // ---------------- GET / SET ----------------
+
     public int getId() {
         return id;
     }
 
+    // ---------------- UPDATE ----------------
+
     @Override
     public void update(float delta) {
-        
+
     }
 }

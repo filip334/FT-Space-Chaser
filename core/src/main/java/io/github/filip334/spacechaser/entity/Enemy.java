@@ -47,7 +47,7 @@ public class Enemy extends Entity{
     // postavlja po talasu (kasniji talasi vrede vise).
     private int scoreValue = 10;
 
-    // ---------------- CONSTRUCTOR ----------------
+    // ---------------- KONSTRUKTOR ----------------
 
     public Enemy(float x, float y) {
         //collisionType = CollisionType.ENEMY;
@@ -77,6 +77,8 @@ public class Enemy extends Entity{
     
     
     
+    // ---------------- NAVIGATION / TARGETING ----------------
+
     public PatrolState createPatrolState() {
         return new PatrolState();
     }
@@ -233,8 +235,9 @@ public class Enemy extends Entity{
     }
     
     
+    // ---------------- SEPARATION ----------------
     // RAKETE SE NE POKLAPAJU
-    
+
     public void applySeparation(Array<Enemy> enemies, float delta) {
         float separationRadius = 60f;
         float pushStrength = 180f;
@@ -288,6 +291,8 @@ public class Enemy extends Entity{
         updateHitbox();
     }
 
+    // ---------------- GET / SET ----------------
+
     /** Postavlja i max i trenutno zdravlje (koristi GameWorld pri stvaranju talasa). */
     public void setMaxHealth(float maxHealth) {
         this.health = new HealthComponent(maxHealth);
@@ -325,6 +330,8 @@ public class Enemy extends Entity{
         return acceleration;
     }
     
+    // ---------------- MOVEMENT ----------------
+
     public void moveTowards(Vector2 target, float delta) {
         movementBlocked = false;
         previousRotation = rotation;
@@ -350,28 +357,9 @@ public class Enemy extends Entity{
             steering.set(direction);
         }
 
-        if (tryMove(steering, delta)) {
-            return;
-        }
-
-        // Kada je put pravo ispred zatvoren, probaj da zaobidjes zid s leve ili desne strane.
-        Vector2 left = new Vector2(-direction.y, direction.x).scl(1.25f).add(direction).nor();
-        if (tryMove(left, delta)) {
-            return;
-        }
-
-        Vector2 right = new Vector2(direction.y, -direction.x).scl(1.25f).add(direction).nor();
-        if (tryMove(right, delta)) {
-            return;
-        }
-
-        velocityX = 0f;
-        velocityY = 0f;
-        // Svi pokusaji su udarili u zid. Vrati poslednji stabilan ugao da
-        // raketa ne bi vizuelno skakala levo-desno pri svakom frejmu.
-        rotation = previousRotation;
-        movementBlocked = true;
-        updateHitbox();
+        // Kad glavni pokusaj (steering) udari u zid, probni pravci levo/desno
+        // se racunaju od "direction" (ne "steering") - vidi attemptMove().
+        attemptMove(direction, steering, 1.25f, delta);
     }
 
     /**
@@ -405,16 +393,28 @@ public class Enemy extends Entity{
         previousX = x;
         previousY = y;
 
-        if (tryMove(direction, delta)) {
+        attemptMove(direction, direction, 0.6f, delta);
+    }
+
+    /**
+     * Deljena logika za moveTowards()/moveToWaypoint(): probaj primaryDirection,
+     * pa ako udari u zid probaj skretanje levo/desno od "direction" (sideAngleScale
+     * kontrolise ostrinu skretanja - moveTowards ide oko zida siroko jer nema
+     * fiksan bezbedan cilj, moveToWaypoint blago jer je waypoint vec bezbedan).
+     * Ako sva 3 pokusaja udare u zid, raketa ostaje na mestu (movementBlocked=true)
+     * i vraca poslednji stabilan ugao umesto da vizuelno skace levo-desno.
+     */
+    private void attemptMove(Vector2 direction, Vector2 primaryDirection, float sideAngleScale, float delta) {
+        if (tryMove(primaryDirection, delta)) {
             return;
         }
 
-        Vector2 left = new Vector2(-direction.y, direction.x).scl(0.6f).add(direction).nor();
+        Vector2 left = new Vector2(-direction.y, direction.x).scl(sideAngleScale).add(direction).nor();
         if (tryMove(left, delta)) {
             return;
         }
 
-        Vector2 right = new Vector2(direction.y, -direction.x).scl(0.6f).add(direction).nor();
+        Vector2 right = new Vector2(direction.y, -direction.x).scl(sideAngleScale).add(direction).nor();
         if (tryMove(right, delta)) {
             return;
         }
@@ -543,6 +543,8 @@ public class Enemy extends Entity{
         }
         return false;
     }
+    // ---------------- PERCEPTION ----------------
+
     public boolean canSeePlayer() {
 
         if (player == null) {
@@ -570,15 +572,17 @@ public class Enemy extends Entity{
         this.enraged = enraged;
     }
 
+    // ---------------- NETWORK ----------------
+
     public void setNetworkState(float x, float y, float rotation) {
         this.x = x;
         this.y = y;
         this.rotation = rotation;
         updateHitbox();
     }
-    
-    // UPDATE / RENDER / DISPOSE
-    
+
+    // ---------------- UPDATE ----------------
+
     @Override
     public void update(float delta) {
         stateMachine.update(this, delta);

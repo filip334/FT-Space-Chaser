@@ -4,27 +4,20 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.TimeUtils;
 import io.github.filip334.spacechaser.entity.Player;
 import io.github.filip334.spacechaser.SpaceChaserGame;
 import io.github.filip334.spacechaser.renderer.HudRenderer;
 import io.github.filip334.spacechaser.server.GameServer;
 import io.github.filip334.spacechaser.network.message.PlayerInputMessage;
-import io.github.filip334.spacechaser.ui.Buttons;
-import io.github.filip334.spacechaser.ui.Fonts;
-import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.world.GameWorld;
 import io.github.filip334.spacechaser.settings.GameSettings;
 import io.github.filip334.spacechaser.world.GameLayout;
@@ -58,13 +51,8 @@ public class GameScreen implements Screen {
 
     // PAUZA
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
-    private final BitmapFont pauseTitleFont = Fonts.generate(44, Theme.WHITE);
-    private final BitmapFont pauseButtonFont = Fonts.generate(24, Theme.WHITE);
-    private final BitmapFont pauseSubFont = Fonts.generate(18, Theme.WHITE);
+    private final PauseMenu pauseMenu = new PauseMenu();
     private final Vector2 mouseViewportPos = new Vector2();
-    private final Rectangle resumeButton = new Rectangle();
-    private final Rectangle restartButton = new Rectangle();
-    private final Rectangle mainMenuButton = new Rectangle();
 
     private boolean paused; // singleplayer - lokalno stanje
     private boolean showHitboxes; // F1 - iskljuceno po podrazumevanju
@@ -76,6 +64,8 @@ public class GameScreen implements Screen {
     // na sledecim frejmovima (skor isti/manji od tek upisanog rekorda) vraca
     // false, pa se mora pamtiti da li je rekord ikad oboren tokom ove partije.
     private boolean newHighScoreAchieved;
+
+    // ---------------- KONSTRUKTORI ----------------
 
     public GameScreen(Game game) {
         this.game = game;
@@ -165,8 +155,8 @@ public class GameScreen implements Screen {
         world.renderHud(batch, camera.combined);
 
         if (paused) {
-            drawPauseOverlay();
-            drawPauseMenu("PAUSED", true);
+            pauseMenu.drawOverlay(shapeRenderer, identityTransform);
+            pauseMenu.drawMenu(batch, shapeRenderer, "PAUSED", true, pauseMouse());
             handleSingleplayerPauseInput();
         }
     }
@@ -209,25 +199,23 @@ public class GameScreen implements Screen {
 
         if (multiplayerPaused) {
             deadLeaveMenuOpen = false;
-            drawPauseOverlay();
+            pauseMenu.drawOverlay(shapeRenderer, identityTransform);
             boolean isPauser = pausedByPlayerId == multiplayerClient.getLocalPlayerId();
             if (isPauser) {
-                drawPauseMenu("PAUSED", false);
+                pauseMenu.drawMenu(batch, shapeRenderer, "PAUSED", false, pauseMouse());
                 handleMultiplayerPauserInput();
             } else {
-                drawInfoLeaveOverlay("PAUSED", "Game will continue when the other player is ready.");
+                pauseMenu.drawInfoLeave(batch, shapeRenderer, "PAUSED", "Game will continue when the other player is ready.", pauseMouse());
                 handleLeaveOnlyInput();
             }
         } else if (deadLeaveMenuOpen) {
-            drawPauseOverlay();
-            drawInfoLeaveOverlay("ELIMINATED", "You can spectate or leave the match.");
+            pauseMenu.drawOverlay(shapeRenderer, identityTransform);
+            pauseMenu.drawInfoLeave(batch, shapeRenderer, "ELIMINATED", "You can spectate or leave the match.", pauseMouse());
             handleLeaveOnlyInput();
         }
     }
 
-    // =========================================================
-    // PAUZA
-    // =========================================================
+    // ---------------- PAUZA ----------------
 
     private void handleMultiplayerPauseKey() {
         if (!Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) return;
@@ -249,87 +237,9 @@ public class GameScreen implements Screen {
         // samo taj igrac moze da nastavi igru.
     }
 
-    private void drawPauseOverlay() {
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        shapeRenderer.setTransformMatrix(identityTransform);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0f, 0f, 0f, 0.65f);
-        shapeRenderer.rect(0f, 0f, GameLayout.WINDOW_WIDTH, GameLayout.WINDOW_HEIGHT);
-        shapeRenderer.end();
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-    }
-
-    // Fiksna sirina/visina za SVA dugmad pauze - ranije se svako dugme
-    // pravilo tacno oko sirine sopstvenog teksta, pa je "Main Menu" ispalo
-    // sire od "Resume"/"Restart".
-    private static final float PAUSE_BUTTON_WIDTH = 260f;
-    private static final float PAUSE_BUTTON_HEIGHT = 64f;
-    private static final float PAUSE_BUTTON_SPACING = 26f;
-    private static final float PAUSE_TITLE_GAP = 55f;
-
-    /**
-     * @param showRestart true (singleplayer) prikazuje i "Restart", inace
-     *                    samo "Resume" i "Main Menu"/"Leave Match".
-     */
-    private void drawPauseMenu(String title, boolean showRestart) {
-        float centerX = GameLayout.WINDOW_WIDTH / 2f;
-        float centerY = GameLayout.WINDOW_HEIGHT / 2f;
-        float titleY = centerY + 160f;
-
-        batch.begin();
-        pauseTitleFont.setColor(Theme.WHITE);
-        GlyphLayout titleLayout = new GlyphLayout(pauseTitleFont, title);
-        pauseTitleFont.draw(batch, title, centerX - titleLayout.width / 2f, titleY);
-        batch.end();
-
-        float cursorTop = titleY - titleLayout.height - PAUSE_TITLE_GAP;
-
-        if (showRestart) {
-            cursorTop = drawMenuButtonAndAdvance(resumeButton, "Resume", centerX, cursorTop);
-            cursorTop = drawMenuButtonAndAdvance(restartButton, "Restart", centerX, cursorTop);
-            drawMenuButton(mainMenuButton, "Main Menu", centerX, cursorTop);
-        } else {
-            cursorTop = drawMenuButtonAndAdvance(resumeButton, "Resume", centerX, cursorTop);
-            drawMenuButton(mainMenuButton, "Leave Match", centerX, cursorTop);
-        }
-    }
-
-    /** Iscrtava dugme sa gornjom ivicom na topY i vraca topY sledeceg dugmeta ispod. */
-    private float drawMenuButtonAndAdvance(Rectangle bounds, String label, float centerX, float topY) {
-        drawMenuButton(bounds, label, centerX, topY);
-        return topY - PAUSE_BUTTON_HEIGHT - PAUSE_BUTTON_SPACING;
-    }
-
-    /** @param topY gornja ivica dugmeta (sva dugmad dele istu fiksnu sirinu/visinu). */
-    private void drawMenuButton(Rectangle bounds, String label, float centerX, float topY) {
-        Buttons.layoutStack(bounds, centerX, topY, PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT, PAUSE_BUTTON_SPACING);
-        boolean hovered = bounds.contains(pauseMouse());
-        Buttons.draw(batch, shapeRenderer, pauseButtonFont, bounds, label, hovered);
-    }
-
-    /** Prikaz "info + Leave Match" overlaya - koristi ga i cekanje na pauziranog protivnika i mrtav igrac. */
-    private void drawInfoLeaveOverlay(String title, String subtitle) {
-        float centerX = GameLayout.WINDOW_WIDTH / 2f;
-        float centerY = GameLayout.WINDOW_HEIGHT / 2f;
-
-        batch.begin();
-        pauseTitleFont.setColor(Theme.WHITE);
-        GlyphLayout titleLayout = new GlyphLayout(pauseTitleFont, title);
-        pauseTitleFont.draw(batch, titleLayout, centerX - titleLayout.width / 2f, centerY + 60f);
-
-        pauseSubFont.setColor(Theme.CYAN);
-        GlyphLayout sub = new GlyphLayout(pauseSubFont, subtitle);
-        pauseSubFont.draw(batch, sub, centerX - sub.width / 2f, centerY);
-        batch.end();
-
-        // Vise razmaka izmedju podnaslova i dugmeta nego ranije (bilo je centerY - 30).
-        drawMenuButton(mainMenuButton, "Leave Match", centerX, centerY - 60f);
-    }
-
     private void handleLeaveOnlyInput() {
         if (!Gdx.input.justTouched()) return;
-        if (mainMenuButton.contains(pauseMouse())) {
+        if (pauseMenu.isMainMenuClicked(pauseMouse())) {
             returnToMainMenu(null);
         }
     }
@@ -338,13 +248,13 @@ public class GameScreen implements Screen {
         if (!Gdx.input.justTouched()) return;
         Vector2 mouse = pauseMouse();
 
-        if (resumeButton.contains(mouse)) {
+        if (pauseMenu.isResumeClicked(mouse)) {
             paused = false;
-        } else if (restartButton.contains(mouse)) {
+        } else if (pauseMenu.isRestartClicked(mouse)) {
             world.dispose();
             world = new GameWorld(game, settings);
             paused = false;
-        } else if (mainMenuButton.contains(mouse)) {
+        } else if (pauseMenu.isMainMenuClicked(mouse)) {
             dispose();
             game.setScreen(new MainMenuScreen(game));
         }
@@ -354,9 +264,9 @@ public class GameScreen implements Screen {
         if (!Gdx.input.justTouched()) return;
         Vector2 mouse = pauseMouse();
 
-        if (resumeButton.contains(mouse)) {
+        if (pauseMenu.isResumeClicked(mouse)) {
             multiplayerClient.sendPause(false);
-        } else if (mainMenuButton.contains(mouse)) {
+        } else if (pauseMenu.isMainMenuClicked(mouse)) {
             returnToMainMenu(null);
         }
     }
@@ -373,6 +283,8 @@ public class GameScreen implements Screen {
      * klijenta - vidi dispose()) - zajednicko za "vrati se u meni" i "mec
      * gotov" puteve. @return false ako je sesija vec zavrsena (izbegava dupli setScreen).
      */
+    // ---------------- MULTIPLAYER SESSION ----------------
+
     private boolean endMultiplayerSession() {
         if (returningToMenu) return false;
         returningToMenu = true;
@@ -384,6 +296,8 @@ public class GameScreen implements Screen {
         if (!endMultiplayerSession()) return;
         game.setScreen(new MainMenuScreen(game, message));
     }
+
+    // ---------------- HUD ----------------
 
     private void renderMultiplayerHud() {
         Player local = multiplayerWorld.getLocalPlayer();
@@ -419,6 +333,8 @@ public class GameScreen implements Screen {
      * ovaj klijent NE simulira sopstveno kretanje, samo prikazuje ono sto
      * server vrati kroz snapshot (jednostavno, bez client-side prediction za sad).
      */
+    // ---------------- INPUT ----------------
+
     private void sendLocalInput() {
         PlayerInputMessage input = new PlayerInputMessage();
         input.left = Gdx.input.isKeyPressed(settings.getMoveLeft());
@@ -447,20 +363,37 @@ public class GameScreen implements Screen {
         if (hudRenderer != null) hudRenderer.dispose();
         batch.dispose();
         shapeRenderer.dispose();
-        pauseTitleFont.dispose();
-        pauseButtonFont.dispose();
-        pauseSubFont.dispose();
+        pauseMenu.dispose();
     }
 
-    // ---------------- ABSTRAKTNE ----------------
+    // ---------------- SCREEN METHODS ----------------
 
     @Override
     public void show() {
     }
 
+    // Odmah po otvaranju ekrana zna da stigne i po nekoliko resize() poziva
+    // koji NISU korisnikovo prevlacenje ivice prozora (npr. Windows sam
+    // sazme prozor da stane na ekran ako je prevelik) - Game.setScreen() k
+    // tome uvek posalje jedan odmah posle show(). Zato se auto-pauza ignorise
+    // kratko posle kreiranja ekrana, dok se prozor "ne slegne".
+    private static final long RESIZE_AUTOPAUSE_GRACE_MILLIS = 1000L;
+    private final long createdAtMillis = TimeUtils.millis();
+
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
+
+        // Windows-ov modalni resize-drag loop ne pusta normalan game-loop
+        // tick dok korisnik drzi ivicu prozora, pa world.update(delta)
+        // efektivno stoji u mestu i izgleda kao da se igra zaglavila. Posle
+        // pocetnog "slegnuvsi se" perioda, svaki resize() je stvarno
+        // korisnikovo prevlacenje - pauziramo (SP) da to deluje namerno
+        // (isti PAUSED meni kao na ESC) umesto kao zamrzavanje.
+        boolean pastStartupGrace = TimeUtils.timeSinceMillis(createdAtMillis) >= RESIZE_AUTOPAUSE_GRACE_MILLIS;
+        if (pastStartupGrace && multiplayerClient == null && world != null) {
+            paused = true;
+        }
     }
 
     @Override

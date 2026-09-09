@@ -14,11 +14,15 @@ public class PatrolState implements EnemyState {
     private Vector2 target;
     private float idleTimer;
 
+    // ---------------- ENTER ----------------
+
     @Override
     public void enter(Enemy enemy) {
         target = enemy.pickPatrolPoint();
         idleTimer = 0f;
     }
+
+    // ---------------- UPDATE ----------------
 
     @Override
     public void update(Enemy enemy, float delta) {
@@ -53,6 +57,8 @@ public class PatrolState implements EnemyState {
             idleTimer = MathUtils.random(IDLE_MIN, IDLE_MAX);
         }
     }
+
+    // ---------------- EXIT ----------------
 
     @Override
     public void exit(Enemy enemy) {

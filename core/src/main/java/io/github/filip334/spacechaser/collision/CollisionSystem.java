@@ -16,6 +16,8 @@ public class CollisionSystem {
     // ranijih 100 da ukupan skor ostane razuman.
     private static final int COIN_VALUE = 10;
 
+    // ---------------- PUBLIC API ----------------
+
     /**
      * Sudari koji se desavaju JEDNOM po frejmu (ne po igracu) - meci ne
      * pripadaju nijednom konkretnom igracu u smislu fizike, vec samo svetu.
@@ -63,6 +65,8 @@ public class CollisionSystem {
         }
         return scoreGained;
     }
+
+    // ---------------- BULLETS VS WALLS ----------------
 
     private void checkBulletsVsWalls(Array<Bullet> bullets, Array<Wall> walls) {
         for (Bullet bullet : bullets) {
@@ -146,6 +150,8 @@ public class CollisionSystem {
         return true;
     }
     
+    // ---------------- PLAYER VS WALLS ----------------
+
     private void checkPlayerVsWalls(Player player,Array<Wall> walls) {
 
         if (!overlapsAnyWall(player, walls)) {
@@ -181,6 +187,8 @@ public class CollisionSystem {
         return false;
     }
 
+    // ---------------- ENEMIES VS WALLS ----------------
+
     private void checkEnemiesVsWalls(Array<Enemy> enemies, Array<Wall> walls) {
         for (Enemy enemy : enemies) {
             if (enemy.isDead()) continue;
@@ -193,6 +201,8 @@ public class CollisionSystem {
             }
         }
     }
+
+    // ---------------- BULLETS VS ENEMIES ----------------
 
     private int checkBulletsVsEnemies(Array<Bullet> bullets, Array<Enemy> enemies, Map<Integer, Player> players) {
         int scoreGained = 0;
@@ -229,6 +239,8 @@ public class CollisionSystem {
 
         return scoreGained;
     }
+
+    // ---------------- PLAYER VS ENEMIES ----------------
 
     private void checkPlayerVsEnemies(Player player, Array<Enemy> enemies) {
         // Mrtav igrac vise nije fizicka meta. Njegov hitbox moze ostati na

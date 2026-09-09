@@ -18,7 +18,7 @@ public class Player extends Entity{
     private int score = 0;
 
 
-    // ---------------- CONSTRUCTOR ----------------
+    // ---------------- KONSTRUKTORI ----------------
 
     public Player(float x, float y) {
         this(x, y, new GameSettings(), true);
@@ -46,6 +46,8 @@ public class Player extends Entity{
         createHitbox();
     }
     
+    // ---------------- MOVEMENT ----------------
+
     private void handleMovement(float delta) {
 
         previousX = x;
@@ -95,7 +97,8 @@ public class Player extends Entity{
         }
     }
     
-    // HITBOX
+    // ---------------- HITBOX ----------------
+
     private void createHitbox() {
         hitbox = new CompoundHitbox();
         // CENTAR
@@ -103,9 +106,9 @@ public class Player extends Entity{
         // WINGS
         hitbox.addBox(-5f, 0f, 15f, 50f);
     }
-    
-    // GET / SET
-    
+
+    // ---------------- GET / SET ----------------
+
         // HEALTH
     public void setNetworkHealth(float health) {
 
@@ -211,7 +214,7 @@ public class Player extends Entity{
         return diff;
     }
 
-    // UPDATE / RENDER / DISPOSE
+    // ---------------- UPDATE ----------------
 
     @Override
     public void update(float delta) {

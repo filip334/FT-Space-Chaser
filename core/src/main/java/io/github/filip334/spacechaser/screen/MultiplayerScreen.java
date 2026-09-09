@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Rectangle;
 import io.github.filip334.spacechaser.SpaceChaserGame;
-import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.ChaseArt;
 import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
@@ -38,6 +37,8 @@ public class MultiplayerScreen extends BaseScreen {
     private final Rectangle[] menuBounds;
     private final Rectangle pilotBox = new Rectangle();
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public MultiplayerScreen(Game game) {
         super(game);
 
@@ -55,6 +56,8 @@ public class MultiplayerScreen extends BaseScreen {
         }
     }
 
+    // ---------------- RENDER ----------------
+
     @Override
     public void render(float delta) {
         beginFrame();
@@ -71,9 +74,7 @@ public class MultiplayerScreen extends BaseScreen {
         handleInput(width, height);
     }
 
-    // =========================================================
-    // TITLE
-    // =========================================================
+    // ---------------- TITLE ----------------
 
     private void drawTitle(float width, float height) {
         String title = "MULTIPLAYER";
@@ -93,9 +94,7 @@ public class MultiplayerScreen extends BaseScreen {
         drawGlowLine(x, underlineY, layout.width, 3f);
     }
 
-    // =========================================================
-    // CHASE SCENE (2 igraca, 3 raketice - ista vizuela kao Main Menu)
-    // =========================================================
+    // ---------------- CHASE SCENE ----------------
 
     /**
      * Brod A (blizi/veci) je NAMERNO identican po velicini i poziciji broda
@@ -141,39 +140,19 @@ public class MultiplayerScreen extends BaseScreen {
         ChaseArt.drawShip(batch, shipTexture, engineFireTexture, shipBX, shipBY, shipBHeight, 1f);
     }
 
-    // =========================================================
-    // MENU
-    // =========================================================
+    // ---------------- MENU ----------------
 
     private void drawMenu(float width, float height) {
         float scale = computeUiScale(width, height);
-        float buttonWidth = BUTTON_WIDTH * scale;
-        float buttonHeight = BUTTON_HEIGHT * scale;
-        float buttonSpacing = BUTTON_SPACING * scale;
-        float backExtraGap = BACK_EXTRA_GAP * scale;
-
         menuFont.getData().setScale(scale);
 
-        float startX = CORNER_MARGIN;
-        // Donji levi ugao - BACK (poslednja stavka) je najnize, sa vecim
-        // razmakom od ostalih iznad njega.
-        float y = CORNER_MARGIN;
-
-        for (int i = menuItems.length - 1; i >= 0; i--) {
-            menuBounds[i].set(startX, y, buttonWidth, buttonHeight);
-            boolean hovered = isMouseOver(menuBounds[i]);
-            Buttons.draw(batch, shapeRenderer, menuFont, menuBounds[i], menuItems[i], hovered);
-
-            float gap = (i == menuItems.length - 1) ? backExtraGap : buttonSpacing;
-            y += buttonHeight + gap;
-        }
+        drawVerticalMenu(menuFont, menuItems, menuBounds, CORNER_MARGIN, CORNER_MARGIN,
+                BUTTON_WIDTH * scale, BUTTON_HEIGHT * scale, BUTTON_SPACING * scale, BACK_EXTRA_GAP * scale);
 
         menuFont.getData().setScale(1f);
     }
 
-    // =========================================================
-    // PILOT / BEST SCORE
-    // =========================================================
+    // ---------------- PILOT / BEST SCORE ----------------
 
     /** Isti prikaz kao pilot box na Main Menu-u, samo bez editovanja imena. */
     private void drawPilot(float width, float height) {
@@ -184,9 +163,7 @@ public class MultiplayerScreen extends BaseScreen {
                 highScores.getSingleplayerHighScore(), highScores.getMultiplayerHighScore());
     }
 
-    // =========================================================
-    // INPUT
-    // =========================================================
+    // ---------------- INPUT ----------------
 
     private void handleInput(float width, float height) {
         if (!Gdx.input.justTouched()) {
@@ -213,9 +190,7 @@ public class MultiplayerScreen extends BaseScreen {
         }
     }
 
-    // =========================================================
-    // SCREEN
-    // =========================================================
+    // ---------------- DISPOSE ----------------
 
     @Override
     public void dispose() {

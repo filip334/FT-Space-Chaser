@@ -12,6 +12,8 @@ public class GridNode {
 
     public GridNode parent;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public GridNode(int x, int y, boolean walkable) {
         this.x = x;
         this.y = y;

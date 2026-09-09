@@ -41,8 +41,8 @@ public abstract class Entity {
     // TEXTURE
     protected Texture entityTexture;
     
-    // GET/SET
-    
+    // ---------------- GET / SET ----------------
+
         // POSITION
     public float getX(){
         return this.x;
@@ -137,11 +137,13 @@ public abstract class Entity {
     }
     
     
-    // UPDATE / RENDER / DISPOSE
+    // ---------------- UPDATE ----------------
     public abstract void update(float delta);
     public void updateHitbox(){
         hitbox.update(x, y, rotation);
     }
+
+    // ---------------- RENDER ----------------
     public void hitBoxDebugRenderer(ShapeRenderer shapeRenderer){
         hitbox.debugRender(shapeRenderer);
     }

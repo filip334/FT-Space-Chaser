@@ -10,14 +10,20 @@ public class SearchState implements EnemyState {
 
     private static final float SEARCH_TIME = 3f;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public SearchState(Vector2 searchPosition) {
         this.searchPosition = searchPosition;
     }
+
+    // ---------------- ENTER ----------------
 
     @Override
     public void enter(Enemy enemy) {
         timer = 0f;
     }
+
+    // ---------------- UPDATE ----------------
 
     @Override
     public void update(Enemy enemy, float delta) {
@@ -43,6 +49,8 @@ public class SearchState implements EnemyState {
             );
         }
     }
+
+    // ---------------- EXIT ----------------
 
     @Override
     public void exit(Enemy enemy) {

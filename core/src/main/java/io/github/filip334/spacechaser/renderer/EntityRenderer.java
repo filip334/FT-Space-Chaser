@@ -2,8 +2,10 @@ package io.github.filip334.spacechaser.renderer;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Vector2;
 import io.github.filip334.spacechaser.animation.AnimationController;
 import io.github.filip334.spacechaser.entity.*;
+import io.github.filip334.spacechaser.util.RotationUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +32,8 @@ public class EntityRenderer {
     // nezavisna za lokalnog igraca i protivnika.
     private final Map<Player, AnimationController> flameAnimations = new HashMap<>();
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public EntityRenderer(Texture playerIdleTexture, Texture flameSheet,
                            Texture enemyTexture, Texture bulletTexture) {
 
@@ -40,6 +44,8 @@ public class EntityRenderer {
         this.bulletTexture = bulletTexture;
     }
 
+    // ---------------- UPDATE ----------------
+
     /**
      * Poziva se jednom po frejmu da sve aktivne animacije odmaknu (iz GameWorld/MultiplayerGameWorld).
      */
@@ -48,6 +54,8 @@ public class EntityRenderer {
             controller.update(delta);
         }
     }
+
+    // ---------------- RENDER ----------------
 
     public void render(SpriteBatch batch, Entity entity){
         if (entity instanceof Player) {
@@ -114,20 +122,15 @@ public class EntityRenderer {
      * localOffsetY > 0 = gornji motor, < 0 = donji motor (u lokalnom sistemu broda).
      */
     private void drawEngineFlame(SpriteBatch batch, TextureRegion frame, Player player, float localOffsetY) {
-        float rad = (float) Math.toRadians(player.getRotation());
-        float cos = (float) Math.cos(rad);
-        float sin = (float) Math.sin(rad);
-
         // iza broda (suprotno od pravca "napred")
         float localOffsetX = -player.getWidth() * 0.6f;
+        Vector2 world = RotationUtils.rotateOffset(player.getX(), player.getY(),
+                localOffsetX, localOffsetY, player.getRotation());
 
-        float worldX = player.getX() + localOffsetX * cos - localOffsetY * sin;
-        float worldY = player.getY() + localOffsetX * sin + localOffsetY * cos;
-        
         batch.draw(
             frame,
-            worldX - FLAME_WIDTH / 2f,
-            worldY - FLAME_HEIGHT / 2f,
+            world.x - FLAME_WIDTH / 2f,
+            world.y - FLAME_HEIGHT / 2f,
             FLAME_WIDTH / 2f,
             FLAME_HEIGHT / 2f,
             FLAME_WIDTH,
@@ -179,6 +182,8 @@ public class EntityRenderer {
             false
         );
     }
+
+    // ---------------- DISPOSE ----------------
 
     public void dispose() {
         playerIdleTexture.dispose();

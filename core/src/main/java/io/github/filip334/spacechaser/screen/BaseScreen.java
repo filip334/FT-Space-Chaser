@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.filip334.spacechaser.ui.Background;
+import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.ui.UiPanel;
 import io.github.filip334.spacechaser.world.GameLayout;
@@ -35,11 +36,15 @@ public abstract class BaseScreen implements Screen {
 
     private Texture backgroundGradient;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     protected BaseScreen(Game game) {
         this.game = game;
         batch = new SpriteBatch();
         shapeRenderer = new ShapeRenderer();
     }
+
+    // ---------------- SCREEN METHODS ----------------
 
     @Override
     public void show() {
@@ -50,6 +55,8 @@ public abstract class BaseScreen implements Screen {
     public void resize(int width, int height) {
         updateScreenProjection(width, height);
     }
+
+    // ---------------- RENDER HELPERS ----------------
 
     /**
      * SpriteBatch i ShapeRenderer ne menjaju automatski projekciju kada se
@@ -117,6 +124,29 @@ public abstract class BaseScreen implements Screen {
     }
 
     /**
+     * Vertikalan stek dugmadi u donjem levom uglu - poslednja stavka u nizu
+     * ("izlazna" akcija, npr. EXIT/BACK) je najniza, sa vecim razmakom od
+     * ostalih iznad nje. Ista logika je ranije bila zasebno napisana i u
+     * MainMenuScreen i MultiplayerScreen.
+     */
+    protected void drawVerticalMenu(BitmapFont font, String[] items, Rectangle[] bounds,
+                                     float startX, float startY, float buttonWidth, float buttonHeight,
+                                     float spacing, float lastItemExtraGap) {
+        float y = startY;
+
+        for (int i = items.length - 1; i >= 0; i--) {
+            bounds[i].set(startX, y, buttonWidth, buttonHeight);
+            boolean hovered = isMouseOver(bounds[i]);
+            Buttons.draw(batch, shapeRenderer, font, bounds[i], items[i], hovered);
+
+            float gap = (i == items.length - 1) ? lastItemExtraGap : spacing;
+            y += buttonHeight + gap;
+        }
+    }
+
+    // ---------------- UTIL ----------------
+
+    /**
      * Razmera UI elemenata fiksne piksel velicine (dugmad, njihov font) u
      * odnosu na "projektovanu" velicinu prozora (GameLayout.WINDOW_WIDTH/
      * HEIGHT - ista rezolucija za koju je FitViewport mape podesen). Kad se
@@ -135,11 +165,15 @@ public abstract class BaseScreen implements Screen {
         return bounds.contains(mouseX, mouseY);
     }
 
+    // ---------------- NAVIGATION ----------------
+
     /** Prelaz na drugi ekran - uvek prvo oslobodi resurse OVOG ekrana (Game.setScreen to sam nikad ne radi). */
     protected void navigateTo(Screen next) {
         dispose();
         game.setScreen(next);
     }
+
+    // ---------------- SCREEN METHODS ----------------
 
     @Override
     public void pause() {
@@ -152,6 +186,8 @@ public abstract class BaseScreen implements Screen {
     @Override
     public void hide() {
     }
+
+    // ---------------- DISPOSE ----------------
 
     /** Podklase sa sopstvenim fontovima/teksturama MORAJU override-ovati i pozvati super.dispose(). */
     @Override

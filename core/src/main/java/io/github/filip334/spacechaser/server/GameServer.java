@@ -1,11 +1,6 @@
 package io.github.filip334.spacechaser.server;
 
-import io.github.filip334.spacechaser.entity.Bullet;
-import io.github.filip334.spacechaser.entity.Enemy;
 import io.github.filip334.spacechaser.entity.Player;
-import io.github.filip334.spacechaser.entity.Wall;
-import io.github.filip334.spacechaser.entity.Coin;
-import io.github.filip334.spacechaser.network.message.EntityState;
 import io.github.filip334.spacechaser.network.message.GameStateSnapshot;
 import io.github.filip334.spacechaser.network.message.LobbyStatusMessage;
 import io.github.filip334.spacechaser.network.message.PauseStatusMessage;
@@ -38,26 +33,18 @@ public class GameServer {
     private volatile float countdownRemaining = 0f;
     private static final float COUNTDOWN_SECONDS = 3f;
 
-    // Zidovi/novcici se ne racunaju svaki tick preko celog snapshot-a - vidi
-    // buildSnapshot(). Ovi fildovi se citaju/pisu samo iz GameServer-Loop niti.
-    //
-    // VAZNO: prvi tick posle starta NIJE dovoljan trenutak da se puna lista
-    // posalje samo jednom - host/gost tek na SVOM sledecem render frejmu
-    // prebacuju ekran i tek tada MultiplayerClient dobija svoj
-    // MultiplayerGameWorld (setWorld()). Do tada listenLoop() ima world==null
-    // i tiho baca sve sto stigne. Zato puna lista ide kroz kratak "startup"
-    // prozor (ne samo 1 tick) da sigurno stigne posle te tranzicije.
-    private boolean wallsBroadcast = false;
-    private int lastCoinCount = -1;
-    private int ticksSinceStart = 0;
-    private static final int STARTUP_FULL_SYNC_TICKS = 90; // ~1.5s @ 60Hz
+    private final SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
 
     private ServerSocket serverSocket;
     private volatile boolean running = false;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public GameServer(int port) {
         this.port = port;
     }
+
+    // ---------------- START ----------------
 
     /**
      * Bez-arg verzija za pokretanje kroz Thread(server::start, ...) iz MultiplayerScreen.
@@ -82,6 +69,8 @@ public class GameServer {
         gameLoopThread.start();
     }
 
+    // ---------------- GET / SET ----------------
+
     /**
      * Stvarni port na kome server slusa - kad je konstruktor pozvan sa 0,
      * OS bira slobodan port, pa se pravi broj saznaje tek posle start().
@@ -97,6 +86,8 @@ public class GameServer {
         return clients.size();
     }
 
+    // ---------------- DISPOSE ----------------
+
     public void stop() {
         running = false;
         try {
@@ -108,6 +99,8 @@ public class GameServer {
         }
         clients.clear();
     }
+
+    // ---------------- CONNECTION HANDLING ----------------
 
     private void acceptLoop() {
         while (running) {
@@ -126,6 +119,8 @@ public class GameServer {
             }
         }
     }
+
+    // ---------------- GAME LOOP ----------------
 
     private void gameLoop() {
         long lastTime = System.nanoTime();
@@ -158,8 +153,6 @@ public class GameServer {
             return;
         }
 
-        ticksSinceStart++;
-
         for (PlayerInputMessage input : latestInputs.values()) {
             Player p = world.getPlayerById(input.playerId);
             if (p != null) {
@@ -176,96 +169,16 @@ public class GameServer {
         broadcastSnapshot();
     }
 
+    // ---------------- SNAPSHOT BUILDING ----------------
+
     private void broadcastSnapshot() {
-        GameStateSnapshot snapshot = buildSnapshot();
+        GameStateSnapshot snapshot = snapshotBuilder.build(world);
         for (ClientHandler client : clients.values()) {
             client.send(snapshot);
         }
     }
 
-    private GameStateSnapshot buildSnapshot() {
-        GameStateSnapshot s = new GameStateSnapshot();
-
-        for (Map.Entry<Integer, Player> entry : world.getPlayersMap().entrySet()) {
-            s.players.add(toPlayerState(entry.getKey(), entry.getValue()));
-        }
-
-        // TODO: zameniti sekvencijalne ID-jeve stabilnim ID-jem sa same Enemy/Bullet klase
-        // kad budemo dodavali punu sinhronizaciju neprijatelja i metaka.
-        int enemyId = 100_000;
-        for (Enemy e : world.getEnemies()) {
-            s.enemies.add(toSimpleState(enemyId++, e.getX(), e.getY(), e.getRotation()));
-        }
-
-        int bulletId = 200_000;
-        for (Bullet b : world.getBullets()) {
-            s.bullets.add(toSimpleState(bulletId++, b.getX(), b.getY(), b.getRotation()));
-        }
-
-        boolean startupWindow = ticksSinceStart <= STARTUP_FULL_SYNC_TICKS;
-
-        // Zidovi su staticni za ceo mec (nikad se ne pomeraju/dodaju) - saljemo
-        // ih ponovljeno samo tokom kratkog "startup" prozora (ne 60x/sec ceo
-        // mec), da sigurno stignu i ako klijent zakasni da zakaci svoj svet.
-        if (startupWindow || !wallsBroadcast) {
-            int wallId = 300_000;
-            for (Wall w : world.getWalls()) {
-                EntityState state = new EntityState();
-                state.id = wallId++;
-                state.x = w.getX();
-                state.y = w.getY();
-                state.width = w.getWidth();
-                state.height = w.getHeight();
-                s.walls.add(state);
-            }
-            s.wallsIncluded = true;
-            wallsBroadcast = true;
-        }
-
-        // Novcici se samo skupljaju (nikad ne dodaju tokom meca) - van startup
-        // prozora saljemo punu listu samo kad se broj promeni od prethodnog tick-a.
-        int coinCount = world.getCoins().size;
-        if (startupWindow || coinCount != lastCoinCount) {
-            for (Coin coin : world.getCoins()) {
-                s.coins.add(toSimpleState(coin.getId(), coin.getX(), coin.getY(), 0f));
-            }
-            s.coinsChanged = true;
-            lastCoinCount = coinCount;
-        }
-
-        s.score = world.getScore();
-        s.gameTime = world.getGameTime();
-        s.matchOver = world.isMatchOver();
-        s.wave = world.getWaveNumber();
-        s.waveCountdown = world.isWaveCountingDown() ? world.getWaveCountdownSeconds() : 0f;
-
-        return s;
-    }
-
-    private EntityState toPlayerState(int id, Player p) {
-        EntityState s = new EntityState();
-        s.id = id;
-        s.x = p.getX();
-        s.y = p.getY();
-        s.rotation = p.getRotation();
-        s.health = p.getHealth();
-        s.maxHealth = p.getMaxHealth();
-        s.fuel = p.getFuel();
-        s.maxFuel = p.getMaxFuel();
-        s.thrusting = p.isThrusting();
-        s.boosting = p.isBoosting();
-        s.score = p.getScore();
-        return s;
-    }
-
-    private EntityState toSimpleState(int id, float x, float y, float rotation) {
-        EntityState s = new EntityState();
-        s.id = id;
-        s.x = x;
-        s.y = y;
-        s.rotation = rotation;
-        return s;
-    }
+    // ---------------- LOBBY / CONNECTION ----------------
 
     // pozivi iz ClientHandler-a
 
@@ -324,6 +237,8 @@ public class GameServer {
         return result.isEmpty() ? "Player" : result.substring(0, Math.min(16, result.length()));
     }
 
+    // ---------------- PLAYER INPUT & DISCONNECT ----------------
+
     public void onPlayerInput(PlayerInputMessage input) {
         latestInputs.put(input.playerId, input);
     }
@@ -350,6 +265,8 @@ public class GameServer {
             broadcastPauseStatus();
         }
     }
+
+    // ---------------- PAUSE HANDLING ----------------
 
     /**
      * Samo igrac koji je pauzirao moze da nastavi igru - dok god je "pause"

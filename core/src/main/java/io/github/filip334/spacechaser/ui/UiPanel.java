@@ -22,6 +22,8 @@ public final class UiPanel {
     private UiPanel() {
     }
 
+    // ---------------- DRAW ----------------
+
     public static void draw(ShapeRenderer sr, float x, float y, float w, float h, boolean hovered) {
         draw(sr, x, y, w, h, hovered, true);
     }
@@ -61,6 +63,8 @@ public final class UiPanel {
         sr.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
     }
+
+    // ---------------- BORDER ----------------
 
     private static void drawBorder(ShapeRenderer sr, float x, float y, float w, float h, float expand) {
         float bx = x - expand;

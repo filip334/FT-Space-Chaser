@@ -25,10 +25,14 @@ public class EncounterField {
     private float fieldWidth;
     private float fieldHeight;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public EncounterField() {
         walls = new Array<>();
         generateStaticMap();
     }
+
+    // ---------------- MAP GENERATION ----------------
 
     private void generateStaticMap() {
         // Mapa je fiksne velicine, NE zavisi od velicine prozora -
@@ -178,7 +182,7 @@ public class EncounterField {
         walls.add(new Wall(x, y, WALL_THICKNESS, height));
     }
 
-    // ---------------- GET/SET ----------------
+    // ---------------- GET / SET ----------------
 
     public Array<Wall> getWalls() {
         return walls;

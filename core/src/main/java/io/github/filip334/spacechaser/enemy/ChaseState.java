@@ -7,12 +7,16 @@ public class ChaseState implements EnemyState {
 
     private Vector2 lastKnownPlayerPosition;
 
+    // ---------------- ENTER ----------------
+
     @Override
     public void enter(Enemy enemy) {
         if (enemy.getPlayer() != null) {
             lastKnownPlayerPosition = enemy.getPlayerPosition().cpy();
         }
     }
+
+    // ---------------- UPDATE ----------------
 
     @Override
     public void update(Enemy enemy, float delta) {
@@ -30,6 +34,8 @@ public class ChaseState implements EnemyState {
             );
         }
     }
+
+    // ---------------- EXIT ----------------
 
     @Override
     public void exit(Enemy enemy) {

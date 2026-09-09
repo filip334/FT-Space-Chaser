@@ -18,8 +18,12 @@ public class GameSettings {
     private int shoot = DEFAULT_SHOOT;
     private int boost = DEFAULT_BOOST;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public GameSettings() {
     }
+
+    // ---------------- RESET ----------------
 
     /** Vraca samo kontrole na podrazumevane (W/S/A/D, Space, Left Shift) - ime igraca ostaje nepromenjeno. */
     public void resetControlsToDefault() {
@@ -30,6 +34,8 @@ public class GameSettings {
         shoot = DEFAULT_SHOOT;
         boost = DEFAULT_BOOST;
     }
+
+    // ---------------- GET / SET ----------------
 
     public int getMoveUp() {
         return moveUp;

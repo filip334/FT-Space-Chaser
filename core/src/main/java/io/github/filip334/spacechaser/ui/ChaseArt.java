@@ -5,6 +5,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector2;
+import io.github.filip334.spacechaser.util.RotationUtils;
 
 /**
  * Deljena "brod kog juri raketa" dekorativna scena - koristi je Main Menu i
@@ -30,6 +32,8 @@ public final class ChaseArt {
 
     private ChaseArt() {
     }
+
+    // ---------------- SHIP ----------------
 
     /** Igracev brod (uvek prirodan ugao slike, bez rotacije) sa dva plamena iz motora. */
     public static void drawShip(SpriteBatch batch, Texture shipTexture, Texture fireTexture,
@@ -57,6 +61,8 @@ public final class ChaseArt {
         batch.end();
     }
 
+    // ---------------- ENEMY ----------------
+
     /** Neprijatelj rotiran u pravcu kretanja (kao da juri) sa jednim plamenom iz motora. */
     public static void drawEnemy(SpriteBatch batch, Texture enemyTexture, Texture fireTexture,
                                   float centerX, float centerY, float enemyHeight, float alpha) {
@@ -67,13 +73,9 @@ public final class ChaseArt {
         // Motor je pri dnu (necentrirano) enemy.png teksture pre rotacije -
         // pretvori taj lokalni pomeraj u svetske koordinate NAKON rotacije tela.
         float localOffsetY = -enemyHeight * 0.38f;
-        float rad = (float) Math.toRadians(ENEMY_ROTATION_DEG);
-        float cos = (float) Math.cos(rad);
-        float sin = (float) Math.sin(rad);
-        float flameX = centerX - localOffsetY * sin;
-        float flameY = centerY + localOffsetY * cos;
+        Vector2 flame = RotationUtils.rotateOffset(centerX, centerY, 0f, localOffsetY, ENEMY_ROTATION_DEG);
 
-        drawEngineFire(batch, fireTexture, flameX, flameY, enemyWidth * 0.95f, TRAIL_ANGLE_DEG, alpha);
+        drawEngineFire(batch, fireTexture, flame.x, flame.y, enemyWidth * 0.95f, TRAIL_ANGLE_DEG, alpha);
 
         batch.begin();
         batch.setColor(1f, 1f, 1f, alpha);
@@ -82,6 +84,8 @@ public final class ChaseArt {
         batch.setColor(Color.WHITE);
         batch.end();
     }
+
+    // ---------------- ENGINE FIRE ----------------
 
     /**
      * Crta plamen motora tako da mu je svetao vrh na (anchorX, anchorY) i

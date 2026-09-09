@@ -24,11 +24,15 @@ public class LanHostAdvertiser {
     private volatile boolean running = false;
     private Thread listenThread;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public LanHostAdvertiser(int gamePort, String hostName, String gameMode) {
         this.gamePort = gamePort;
         this.hostName = hostName;
         this.gameMode = gameMode;
     }
+
+    // ---------------- START ----------------
 
     public void start() {
         try {
@@ -45,6 +49,8 @@ public class LanHostAdvertiser {
         listenThread.setDaemon(true);
         listenThread.start();
     }
+
+    // ---------------- LISTEN LOOP ----------------
 
     private void listenLoop() {
         byte[] buffer = new byte[512];
@@ -71,6 +77,8 @@ public class LanHostAdvertiser {
             }
         }
     }
+
+    // ---------------- DISPOSE ----------------
 
     public void stop() {
         running = false;

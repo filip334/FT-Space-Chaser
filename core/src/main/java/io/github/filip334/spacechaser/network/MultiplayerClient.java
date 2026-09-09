@@ -36,9 +36,13 @@ public class MultiplayerClient {
     private volatile PauseStatusMessage latestPauseStatus;
     private final String playerName;
 
+    // ---------------- KONSTRUKTOR ----------------
+
     public MultiplayerClient(String playerName) {
         this.playerName = playerName;
     }
+
+    // ---------------- WORLD ----------------
 
     /**
      * Postavlja MultiplayerGameWorld u koji ce se upisivati primljeni snapshotovi.
@@ -51,6 +55,8 @@ public class MultiplayerClient {
             world.setLocalPlayerId(localPlayerId);
         }
     }
+
+    // ---------------- CONNECT ----------------
 
     public boolean connect(String host, int port) {
         try {
@@ -71,6 +77,8 @@ public class MultiplayerClient {
             return false;
         }
     }
+
+    // ---------------- LISTEN LOOP ----------------
 
     private void listenLoop() {
         try {
@@ -110,6 +118,8 @@ public class MultiplayerClient {
         }
     }
 
+    // ---------------- SEND ----------------
+
     public void sendInput(PlayerInputMessage input) {
         send(input);
     }
@@ -133,12 +143,16 @@ public class MultiplayerClient {
         }
     }
 
+    // ---------------- DISPOSE ----------------
+
     public void disconnect() {
         running = false;
         try {
             if (socket != null) socket.close();
         } catch (IOException ignored) {}
     }
+
+    // ---------------- GET / SET ----------------
 
     public int getLocalPlayerId() {
         return localPlayerId;

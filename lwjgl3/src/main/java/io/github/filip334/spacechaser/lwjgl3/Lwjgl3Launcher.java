@@ -7,6 +7,8 @@ import io.github.filip334.spacechaser.world.GameLayout;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {
+    // ---------------- ENTRY POINT ----------------
+
     public static void main(String[] args) {
         if (StartupHelper.startNewJvmIfRequired()) return; // This handles macOS support and helps on Windows.
         createApplication();
@@ -20,6 +22,8 @@ public class Lwjgl3Launcher {
     // je da ogranicimo koliko mali sam prozor sme da bude.
     private static final int MIN_WINDOW_WIDTH = 960;
     private static final int MIN_WINDOW_HEIGHT = 600;
+
+    // ---------------- APPLICATION SETUP ----------------
 
     private static Lwjgl3Application createApplication() {
         return new Lwjgl3Application(new SpaceChaserGame(), getDefaultConfiguration());

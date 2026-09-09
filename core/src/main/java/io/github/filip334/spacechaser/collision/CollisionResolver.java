@@ -17,6 +17,8 @@ public class CollisionResolver {
     private CollisionResolver() {
     }
 
+    // ---------------- RESOLVE ----------------
+
     public static void resolvePlayerVsWalls(
             Player player,
             Array<Wall> walls) {
@@ -52,6 +54,8 @@ public class CollisionResolver {
             );
         }
     }
+
+    // ---------------- COLLISION DETECTION ----------------
 
     private static CollisionData findCollision(
             Player player,
@@ -92,6 +96,8 @@ public class CollisionResolver {
 
         return best;
     }
+
+    // ---------------- NORMAL & PUSH-OUT ----------------
 
     private static void orientNormal(
             Vector2 normal,
@@ -166,6 +172,8 @@ public class CollisionResolver {
             player.setVelocity(vx, vy);
         }
     }
+
+    // ---------------- COLLISION DATA ----------------
 
     private static class CollisionData {
         float depth;
