@@ -1,7 +1,6 @@
 package io.github.filip334.spacechaser.component;
 
 public class FuelComponent {
-    //
     private float maxFuel;
     private float fuel;
 

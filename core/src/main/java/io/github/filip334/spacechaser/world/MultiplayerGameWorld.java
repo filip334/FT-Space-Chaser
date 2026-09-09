@@ -22,12 +22,6 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-/**
- * Client-side "glupi" svet za multiplayer - ne pokrece enemy AI ni kolizije,
- * samo ogledalo stanja koje server salje kroz GameStateSnapshot.
- * Svi entiteti se identifikuju po ID-ju iz EntityState i azuriraju preko
- * setNetworkState(...) - nikad se ne poziva njihov update(delta).
- */
 public class MultiplayerGameWorld {
 
     private final Map<Integer, Player> players = new LinkedHashMap<>();
@@ -55,11 +49,6 @@ public class MultiplayerGameWorld {
 
     // ---------------- UPDATE ----------------
 
-    /**
-     * Poziva se jednom po frejmu iz GameScreen-a da animacija odmice, kao i
-     * da se pozicije igraca priblize poslednjem mreznom stanju (interpolacija -
-     * vidi Player.interpolateNetworkState).
-     */
     public synchronized void update(float delta) {
         entityRenderer.update(delta);
         for (Player p : players.values()) {
@@ -119,8 +108,6 @@ public class MultiplayerGameWorld {
     }
 
     private void syncWalls(GameStateSnapshot snapshot) {
-        // Server salje zidove samo jednom (staticni su ceo mec) - ignorisi
-        // praznu listu u svim ostalim snapshotovima, ne brisi ono sto vec imamo.
         if (!snapshot.wallsIncluded) return;
 
         syncEntities(snapshot.walls, walls,
@@ -128,21 +115,12 @@ public class MultiplayerGameWorld {
     }
 
     private void syncCoins(GameStateSnapshot snapshot) {
-        // Server salje novcice samo kad se neki pokupi - ignorisi praznu
-        // listu u svim ostalim snapshotovima, ne brisi ono sto vec imamo.
         if (!snapshot.coinsChanged) return;
 
         syncEntities(snapshot.coins, coins,
                 state -> new Coin(state.id, state.x, state.y), null);
     }
 
-    /**
-     * Zajednicka logika za sve sync* metode iznad - upisi/dodaj entitet za
-     * svaki EntityState iz snapshot-a, pa ukloni sve sto vise nije u listi
-     * (server ga je uklonio - npr. metak je pogodio, novcic pokupljen).
-     * updater je null za zidove/novcice - oni se samo jednom postave i
-     * nikad kasnije ne menjaju.
-     */
     private <T> void syncEntities(List<EntityState> states, Map<Integer, T> map,
                                    Function<EntityState, T> factory, BiConsumer<T, EntityState> updater) {
         Set<Integer> ids = new HashSet<>();
@@ -198,10 +176,6 @@ public class MultiplayerGameWorld {
         return players.get(localPlayerId);
     }
 
-    /**
-     * Vraca prvog igraca koji nije lokalni. Za sad dovoljno za 1v1 HUD;
-     * kad podrzimo vise od 2 igraca, HUD ce trebati da prikaze listu.
-     */
     public synchronized Player getOpponentPlayer() {
         for (Map.Entry<Integer, Player> entry : players.entrySet()) {
             if (entry.getKey() != localPlayerId) {

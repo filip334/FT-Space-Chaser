@@ -44,11 +44,6 @@ public class MultiplayerClient {
 
     // ---------------- WORLD ----------------
 
-    /**
-     * Postavlja MultiplayerGameWorld u koji ce se upisivati primljeni snapshotovi.
-     * Ako je WelcomeMessage vec stigao pre nego sto je world postavljen,
-     * odmah mu prosledi vec poznati localPlayerId.
-     */
     public void setWorld(MultiplayerGameWorld world) {
         this.world = world;
         if (localPlayerId != -1) {
@@ -61,7 +56,6 @@ public class MultiplayerClient {
     public boolean connect(String host, int port) {
         try {
             socket = new Socket(host, port);
-            // output stream MORA da se napravi pre input stream-a na oba kraja
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
             in = new ObjectInputStream(socket.getInputStream());
@@ -109,7 +103,6 @@ public class MultiplayerClient {
                 }
             }
         } catch (EOFException | SocketException e) {
-            // konekcija zatvorena - normalno pri disconnect-u
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         } finally {

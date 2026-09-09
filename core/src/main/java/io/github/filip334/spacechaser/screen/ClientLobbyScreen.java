@@ -12,7 +12,6 @@ import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.network.MultiplayerClient;
 
-/** Lobby koji gost vidi nakon konekcije, dok host ne pokrene partiju. */
 public class ClientLobbyScreen extends BaseScreen {
 
     private final MultiplayerClient client;
@@ -54,8 +53,6 @@ public class ClientLobbyScreen extends BaseScreen {
     public void render(float delta) {
         beginFrame();
         if (gameStarted) {
-            // navigateTo() ce pozvati dispose() koji dira SAMO GL resurse ovog
-            // ekrana - client ostaje ziv, prosledjen je u GameScreen.
             navigateTo(new GameScreen(game, client));
             return;
         }

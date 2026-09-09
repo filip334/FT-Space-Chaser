@@ -9,11 +9,9 @@ import com.badlogic.gdx.utils.Array;
 
 public class CompoundHitbox {
 
-    //
     private final Array<Polygon> localBoxes = new Array<>();
     private final Array<Polygon> worldBoxes = new Array<>();
-    
-    //
+
     private float ownerX;
     private float ownerY;
     private float ownerRotation;
@@ -29,7 +27,6 @@ public class CompoundHitbox {
 
         Polygon box = new Polygon(vertices);
 
-        // Polygon pozicija predstavlja CENTAR boxa
         box.setPosition(localX, localY);
 
         localBoxes.add(box);

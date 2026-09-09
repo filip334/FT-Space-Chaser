@@ -5,11 +5,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Server-side UDP "oglasivac" - slusa broadcast discovery upite i
- * odgovara imenom hosta i TCP portom na kome GameServer prima konekcije.
- * Zivi paralelno sa GameServer-om dok host ceka igrace.
- */
 public class LanHostAdvertiser {
 
     public static final int DISCOVERY_PORT = 54555;

@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 
-/** Zajednicka tamna teal->cyan gradijentna pozadina za sve menije/ekrane. */
 public final class Background {
 
     private Background() {

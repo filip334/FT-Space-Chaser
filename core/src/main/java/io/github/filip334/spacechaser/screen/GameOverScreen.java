@@ -9,14 +9,8 @@ import io.github.filip334.spacechaser.ui.Buttons;
 import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
 
-/**
- * Ekran posle meca (singleplayer smrt ili kraj multiplayer meca) - prikazuje
- * konacan skor, "novi rekord" poruku ako je zasluzena, i nudi Play Again
- * (nova partija istog moda) ili Main Menu.
- */
 public class GameOverScreen extends BaseScreen {
 
-    /** Odredjuje sta "Play Again" radi - nova singleplayer partija ili nazad na Multiplayer meni za novo hostovanje/pridruzivanje. */
     public enum Mode {
         SINGLEPLAYER, MULTIPLAYER
     }

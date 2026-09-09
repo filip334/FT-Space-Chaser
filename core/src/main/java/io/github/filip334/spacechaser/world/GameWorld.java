@@ -21,16 +21,10 @@ import java.util.Map;
 
 public class GameWorld {
 
-    // GAME
     private final Game game;
 
-    // ENTITIES
-    // VISE igraca po ID-ju (id 0 = lokalni igrac u singleplayeru)
     private final Map<Integer, Player> players = new LinkedHashMap<>();
     private static final int LOCAL_PLAYER_ID = 0;
-    // GameServer dodeljuje ID-jeve redom pocevsi od 1, a host se konektuje na
-    // sopstveni server pre nego sto bilo koji drugi igrac stigne da se
-    // pridruzi - zato je ID 1 uvek host, a sledeci (2) uvek gost.
     private static final int HOST_PLAYER_ID = 1;
     private static final float PLAYER_SPAWN_MARGIN = 80f;
     private static final float PLAYER_SPAWN_SIDE_OFFSET = 150f;
@@ -42,15 +36,12 @@ public class GameWorld {
     private final WaveManager waveManager;
     private final CoinSpawner coinSpawner;
 
-    // RENDER (mogu biti null ako je GameWorld napravljen bez Game-a, npr. na serveru)
     private final EntityRenderer entityRenderer;
     private final ShapeRenderer shapeRenderer;
     private final HudRenderer hudRenderer;
 
-    // SYSTEMS
     private final CollisionSystem collisionSystem = new CollisionSystem();
 
-    // GAME STATE
     private float gameTime = 0f;
     private int score = 0;
     private float shootCooldown = 0f;
@@ -58,27 +49,18 @@ public class GameWorld {
 
     // ---------------- KONSTRUKTORI ----------------
 
-    /**
-     * Bez-arg konstruktor - NE pravi Texture/ShapeRenderer objekte (ne zahteva GL kontekst).
-     * Koristi se na serveru (headless) i u testovima.
-     */
     public GameWorld() {
         this.game = null;
         this.entityRenderer = null;
         this.shapeRenderer = null;
         this.hudRenderer = null;
 
-        // NE dodajemo default igraca ovde - server ovaj konstruktor koristi
-        // i igraci se dodaju dinamicki preko spawnPlayer(id) kad se konektuju.
         encounterField = new EncounterField();
         waveManager = new WaveManager(encounterField);
         coinSpawner = new CoinSpawner(encounterField);
         coinSpawner.spawnCoins(coins);
     }
 
-    /**
-     * Singleplayer konstruktor sa renderovanjem (klijent).
-     */
     public GameWorld(Game game, GameSettings settings) {
         this.game = game;
 
@@ -98,9 +80,6 @@ public class GameWorld {
         waveManager = new WaveManager(encounterField);
         coinSpawner = new CoinSpawner(encounterField);
 
-        // Prvi talas se NE stvara ovde odmah - isto kao na serveru (multiplayer),
-        // waveManager.update() ce ga sam pokrenuti kroz uobicajeno 3-sekundno
-        // odbrojavanje cim primeti da nema neprijatelja (enemies.size == 0).
         coinSpawner.spawnCoins(coins);
     }
 
@@ -120,19 +99,18 @@ public class GameWorld {
         handleShooting(delta);
         updateBullets(delta);
 
-        // Jednom po frejmu (ne po igracu) - meci vec znaju svog vlasnika
-        // (Bullet.getOwnerId()), pa se ubistvo pripisuje pravom igracu.
         score += collisionSystem.checkWorldCollisions(bullets, enemies, encounterField.getWalls(), players);
 
         for (Player p : players.values()) {
-            collisionSystem.checkPlayerCollisions(p, enemies, encounterField.getWalls());
+            int contactKillScore = collisionSystem.checkPlayerCollisions(p, enemies, encounterField.getWalls());
+            p.addScore(contactKillScore);
+            score += contactKillScore;
+
             int coinsGained = collisionSystem.collectCoins(p, coins);
             p.addScore(coinsGained);
             score += coinsGained;
         }
 
-        // Kad su svi novcici na mapi pokupljeni, spawnuj ceo raspored ponovo
-        // umesto da mapa ostane prazna do kraja meca.
         if (coins.size == 0) {
             coinSpawner.spawnCoins(coins);
         }
@@ -149,9 +127,6 @@ public class GameWorld {
             int id = entry.getKey();
             Player p = entry.getValue();
 
-            // Lokalni igrac na klijentu (singleplayer/host) cita tastaturu.
-            // Svi ostali (mrezni igraci na klijentu, SVI igraci na serveru)
-            // koriste input koji je vec postavljen preko applyInput().
             boolean isLocalKeyboardPlayer = (game != null) && (id == LOCAL_PLAYER_ID);
 
             if (isLocalKeyboardPlayer) {
@@ -177,11 +152,6 @@ public class GameWorld {
         }
     }
 
-    /**
-     * Enemy.update() trenutno prima jednog Player-a kao metu.
-     * Dok ne prosirimo Enemy da bira izmedju vise igraca, gadja prvog zivog.
-     * TODO: prosiriti Enemy/StateMachine da bira najblizeg/bilo kog zivog igraca.
-     */
     private Player getPrimaryTarget() {
         for (Player p : players.values()) {
             if (!p.isDead()) return p;
@@ -196,10 +166,6 @@ public class GameWorld {
         return true;
     }
 
-    /**
-     * Mec je gotov kad su SVI konektovani igraci mrtvi.
-     * Prazna mapa (niko jos nije spawn-ovan) se NE racuna kao gotov mec.
-     */
     public boolean isMatchOver() {
         return !players.isEmpty() && allPlayersDead();
     }
@@ -207,7 +173,7 @@ public class GameWorld {
     // ---------------- RENDER ----------------
 
     public void render(SpriteBatch batch) {
-        if (entityRenderer == null) return; // headless world (server) - nema sta da se crta
+        if (entityRenderer == null) return;
 
         for (Player p : players.values()) {
             entityRenderer.render(batch, p);
@@ -314,8 +280,7 @@ public class GameWorld {
         float cos = (float) Math.cos(rot);
         float sin = (float) Math.sin(rot);
 
-        // Lokalna pozicija vrha nosa u odnosu na centar broda
-        float localNoseX = 50f;
+        float localNoseX = 30f;
         float localNoseY = 0f;
 
         float noseX = p.getX() + localNoseX * cos - localNoseY * sin;
@@ -341,8 +306,6 @@ public class GameWorld {
 
         float centerX = encounterField.getFieldX() + encounterField.getFieldWidth() / 2f;
         float bottomY = encounterField.getFieldY() + PLAYER_SPAWN_MARGIN;
-        // Host uvek levo od centra, gost uvek desno - isto na svakom klijentu
-        // jer server sam odlucuje pozicije i salje ih dalje.
         float x = (playerId == HOST_PLAYER_ID) ? centerX - PLAYER_SPAWN_SIDE_OFFSET : centerX + PLAYER_SPAWN_SIDE_OFFSET;
 
         players.put(playerId, new Player(x, bottomY, new GameSettings(), false));

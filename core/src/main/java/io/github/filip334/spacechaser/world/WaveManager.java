@@ -6,24 +6,15 @@ import io.github.filip334.spacechaser.entity.Enemy;
 import io.github.filip334.spacechaser.entity.Wall;
 import io.github.filip334.spacechaser.enemy.PathFinder;
 
-/**
- * Upravlja talasima neprijatelja - odbrojavanje izmedju talasa, stvaranje
- * novog talasa (sve teze sto igra odmice, uvek u sredini mape) i
- * "besnjenje" kad malo raketa ostane u talasu. Takodje gradi navigacionu
- * mrezu (A*) koju neprijatelji koriste da izbegnu zidove. Izdvojeno iz
- * GameWorld da simulacija sveta i upravljanje talasima ne budu u istoj klasi.
- */
 public class WaveManager {
 
     private static final int ENEMY_WAVE_SIZE = 3;
     private static final int MAX_WAVE_ENEMY_COUNT = 8;
-    // = Bullet.DAMAGE, tako da neprijatelji u talasu N ginu na tacno N pogodaka.
+    private static final int MAX_HEALTH_WAVE = 6;
     private static final float ENEMY_HEALTH_PER_WAVE = 33f;
     private static final int SCORE_PER_KILL_BASE = 10;
     private static final float ENEMY_SPAWN_RADIUS = 70f;
     private static final float WAVE_COUNTDOWN_SECONDS = 3f;
-    // Kad broj preostalih raketa u talasu padne na ovaj procenat pocetnog
-    // broja (ili manje), sve preostale postaju "besne" (direktno jure igraca).
     private static final float ENRAGE_THRESHOLD = 0.3f;
     private static final float NAVIGATION_CELL_SIZE = 30f;
 
@@ -44,11 +35,6 @@ public class WaveManager {
 
     // ---------------- UPDATE ----------------
 
-    /**
-     * Kad nestane poslednja raketa iz talasa, sledeci talas se ne stvara
-     * odmah - prvo 3 sekunde odbrojavanja (prikazano na sredini mape), pa tek
-     * onda spawnWave().
-     */
     public void update(float delta, Array<Enemy> enemies, boolean allPlayersDead) {
         if (enemies.size > 0 || allPlayersDead) {
             waveCountingDown = false;
@@ -68,12 +54,6 @@ public class WaveManager {
         }
     }
 
-    /**
-     * Kad u talasu ostane malo raketa (<= ENRAGE_THRESHOLD od pocetnog broja),
-     * sve preostale odmah krecu direktno na igraca - bez ovoga bi igrac mogao
-     * da ostavi 1-2 rakete u patroli i bezbedno farmi novcice/vreme
-     * izbegavajuci ih.
-     */
     public void updateEnrage(Array<Enemy> enemies) {
         if (waveInitialEnemyCount <= 0) return;
 
@@ -87,17 +67,11 @@ public class WaveManager {
 
     // ---------------- SPAWN ----------------
 
-    /**
-     * Svaki talas neprijatelja se stvara u sredini mape (umesto nasumicno po
-     * celoj mapi) - sto je igra dalje odmakla, talas je teze: vise
-     * neprijatelja (do MAX_WAVE_ENEMY_COUNT), vise zivota (N pogodaka za
-     * talas N) i vise poena po ubistvu.
-     */
     private void spawnWave(Array<Enemy> enemies) {
         waveNumber++;
 
         int enemyCount = Math.min(ENEMY_WAVE_SIZE + (waveNumber - 1), MAX_WAVE_ENEMY_COUNT);
-        float waveHealth = ENEMY_HEALTH_PER_WAVE * waveNumber;
+        float waveHealth = ENEMY_HEALTH_PER_WAVE * Math.min(waveNumber, MAX_HEALTH_WAVE);
         int waveScoreValue = SCORE_PER_KILL_BASE * waveNumber;
 
         float centerX = encounterField.getFieldX() + encounterField.getFieldWidth() / 2f;
@@ -127,8 +101,6 @@ public class WaveManager {
             }
         }
 
-        // Ako su svi pokusaji pogodili zid (blizu centra ima vise prepreka),
-        // koristi tacan centar - navigacija (A*) ce ga izbaciti odatle.
         Enemy fallback = new Enemy(centerX, centerY);
         configureNavigation(fallback);
         return fallback;
@@ -157,16 +129,6 @@ public class WaveManager {
     }
 
     private boolean isNavigationCellClear(float x, float y) {
-        // Malo sire od hitbox-a rakete, tako da A* ne bira celiju pored koje
-        // raketa fizicki ne moze da prodje. Stvarna fizicka bezbednost se
-        // svakako proverava posebno (overlapsNavigationWall) pri svakom
-        // pokusaju kretanja - ovaj clearance samo blago favorizuje putanje
-        // dalje od zidova. FIX: sa 30 (= cela velicina navigacione celije)
-        // preko 55% mreze na gusce zidanim mapama je bilo markirano kao
-        // neprohodno, pa se raketa cesto nalazila TACNO u toj baferskoj
-        // zoni - findPath() je tada odmah odustajao (viz. PathFinder fix)
-        // sto je izgledalo kao zamrzavanje/zbunjivanje. Manji clearance
-        // ostavlja mnogo vise stvarno gazljivih celija.
         final float clearance = 15f;
         for (Wall wall : encounterField.getWalls()) {
             if (x >= wall.getX() - clearance && x <= wall.getX() + wall.getWidth() + clearance

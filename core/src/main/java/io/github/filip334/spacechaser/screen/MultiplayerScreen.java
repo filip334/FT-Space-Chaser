@@ -81,7 +81,7 @@ public class MultiplayerScreen extends BaseScreen {
         GlyphLayout layout = new GlyphLayout(titleFont, title);
 
         float x = width / 2f - layout.width / 2f;
-        float y = height * 0.94f; // ista visina kao naslov na Main Menu-u - ne "skace" pri prelazu ekrana
+        float y = height * 0.94f;
 
         batch.begin();
         titleFont.setColor(Theme.CYAN.r, Theme.CYAN.g, Theme.CYAN.b, 0.5f);
@@ -96,14 +96,6 @@ public class MultiplayerScreen extends BaseScreen {
 
     // ---------------- CHASE SCENE ----------------
 
-    /**
-     * Brod A (blizi/veci) je NAMERNO identican po velicini i poziciji broda
-     * na Main Menu-u (centriran, 0.62 * visina) - da prelaz izmedju ta dva
-     * ekrana deluje kontinuirano, bez "skoka". Brod B i raketice su
-     * rasporedjeni oko njega tako da ostanu van donjeg levog (meni) i donjeg
-     * desnog (pilot box) ugla, cak i na najmanjoj dozvoljenoj velicini
-     * prozora (960x600, vidi Lwjgl3Launcher).
-     */
     private void drawChaseScene(float width, float height) {
         float dirRad = (float) Math.toRadians(ChaseArt.TRAIL_ANGLE_DEG);
         float dirX = (float) Math.cos(dirRad);
@@ -112,7 +104,6 @@ public class MultiplayerScreen extends BaseScreen {
         float perpX = (float) Math.cos(perpRad);
         float perpY = (float) Math.sin(perpRad);
 
-        // Isto kao MainMenuScreen.drawShip().
         float shipAX = width * 0.5f;
         float shipAY = height * 0.5f;
         float shipAHeight = height * 0.62f;
@@ -121,7 +112,6 @@ public class MultiplayerScreen extends BaseScreen {
         float shipBY = height * 0.40f;
         float shipBHeight = height * 0.30f;
 
-        // Dve raketice jure brod A (jedna pravo iza, jedna postrance/dalje), jedna juri brod B.
         float enemy1X = shipAX + dirX * height * 0.34f;
         float enemy1Y = shipAY + dirY * height * 0.34f;
 
@@ -131,7 +121,6 @@ public class MultiplayerScreen extends BaseScreen {
         float enemy3X = shipBX + dirX * height * 0.22f;
         float enemy3Y = shipBY + dirY * height * 0.22f;
 
-        // Neprijatelji se crtaju pre brodova - vizuelno su "iza" njih.
         ChaseArt.drawEnemy(batch, enemyTexture, engineFireTexture, enemy1X, enemy1Y, height * 0.11f, 0.85f);
         ChaseArt.drawEnemy(batch, enemyTexture, engineFireTexture, enemy2X, enemy2Y, height * 0.09f, 0.75f);
         ChaseArt.drawEnemy(batch, enemyTexture, engineFireTexture, enemy3X, enemy3Y, height * 0.10f, 0.85f);
@@ -154,7 +143,6 @@ public class MultiplayerScreen extends BaseScreen {
 
     // ---------------- PILOT / BEST SCORE ----------------
 
-    /** Isti prikaz kao pilot box na Main Menu-u, samo bez editovanja imena. */
     private void drawPilot(float width, float height) {
         SpaceChaserGame spaceChaserGame = (SpaceChaserGame) game;
         HighScoreManager highScores = spaceChaserGame.getHighScoreManager();

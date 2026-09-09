@@ -35,10 +35,6 @@ public class SearchState implements EnemyState {
             return;
         }
 
-        // FIX: moveToTarget() koristi A* fallback kad direktan put ka
-        // poslednjoj poznatoj poziciji igraca nije cist (npr. igrac je
-        // pobegao iza zida) - moveTowards() bi ovde mogao da se zaglavi
-        // na isti nacin kao u PatrolState.
         enemy.moveToTarget(searchPosition, delta);
 
         timer += delta;

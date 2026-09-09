@@ -8,13 +8,12 @@ import io.github.filip334.spacechaser.settings.GameSettings;
 
 public class Player extends Entity{
 
-    // INPUT
     private final InputManager input;
 
-    //
     FuelComponent fuel;
 
-    // Sopstveni skor ovog igraca (multiplayer - svaki igrac vodi svoj).
+    private static final float FUEL_REGEN_RATE = 6f;
+
     private int score = 0;
 
 
@@ -28,13 +27,11 @@ public class Player extends Entity{
         input = new InputManager(settings, readsKeyboard);
         this.x = x;
         this.y = y;
-        // 90 = "gore" (dirX=cos, dirY=sin) - igrac se spawn-uje pri dnu mape
-        // i treba odmah da gleda ka centru/gore, a ne udesno.
         this.rotation = 90f;
 
         this.maxSpeed = 1500f;
-        this.acceleration = 550f;
-        this.boostAcceleration = 950f;
+        this.acceleration = 480f;
+        this.boostAcceleration = 650f;
         this.rotationSpeed = 110f;
         
         this.health = new HealthComponent(100);
@@ -58,6 +55,8 @@ public class Player extends Entity{
 
         if (input.moveForward() && input.boosting()) {
             fuel.consume(20f * delta);
+        } else {
+            fuel.refill(FUEL_REGEN_RATE * delta);
         }
 
         if (input.moveLeft()) {
@@ -101,15 +100,12 @@ public class Player extends Entity{
 
     private void createHitbox() {
         hitbox = new CompoundHitbox();
-        // CENTAR
         hitbox.addBox(0f, 0f, 50f, 20f);
-        // WINGS
         hitbox.addBox(-5f, 0f, 15f, 50f);
     }
 
     // ---------------- GET / SET ----------------
 
-        // HEALTH
     public void setNetworkHealth(float health) {
 
         this.health.setHealth(health);
@@ -120,7 +116,7 @@ public class Player extends Entity{
             this.isDead = false;
         }
     }
-        // FUEL
+
     public float getMaxFuel(){
         return fuel.getMaxFuel();
     }
@@ -131,7 +127,6 @@ public class Player extends Entity{
         this.fuel.setFuel(fuel);
     }
 
-        // SCORE
     public int getScore() {
         return score;
     }
@@ -142,7 +137,6 @@ public class Player extends Entity{
         this.score = score;
     }
 
-        // VELOCITY
     public void setVelocity(float velocityX, float velocityY) {
         this.velocityX = velocityX;
         this.velocityY = velocityY;
@@ -152,7 +146,6 @@ public class Player extends Entity{
         hitbox.update(x, y, rotation);
     }
 
-        // INPUT
     public boolean wantsToShoot(){
         return input.shoot();
     }
@@ -168,14 +161,9 @@ public class Player extends Entity{
     public void setNetworkThrusting(boolean thrusting) {
         input.setForward(thrusting);
     }
+
     // ---------------- MULTIPLAYER INTERPOLACIJA ----------------
-    // Server salje snapshotove preko mreze i do 60x/sec, ali mogu da stignu
-    // neravnomerno (jitter, TCP zastoji) - narocito primetno kod igraca koji
-    // se pridruzio (guest), za razliku od hosta koji sa svojim serverom
-    // "razgovara" preko loopback-a. Umesto da svaki primljeni paket odmah
-    // trzajno postavi poziciju, cuvamo ga kao cilj (net*) i svakog render
-    // frejma se samo priblizavamo tom cilju - vidljivo kretanje ostaje glatko
-    // cak i kad paketi kasne ili stignu u grupi.
+
     private boolean netInitialized;
     private float netTargetX, netTargetY, netTargetRotation;
     private static final float NET_SMOOTHING_RATE = 18f;
@@ -186,8 +174,6 @@ public class Player extends Entity{
         netTargetRotation = rotation;
 
         if (!netInitialized) {
-            // Prvi paket za ovog igraca - nema smisla interpolirati od (0,0),
-            // odmah skoci na stvarnu pocetnu poziciju/rotaciju.
             this.x = x;
             this.y = y;
             this.rotation = rotation;
@@ -196,7 +182,6 @@ public class Player extends Entity{
         }
     }
 
-    /** Poziva se svakog render frejma iz MultiplayerGameWorld.update(delta). */
     public void interpolateNetworkState(float delta) {
         if (!netInitialized) return;
 
@@ -219,26 +204,21 @@ public class Player extends Entity{
     @Override
     public void update(float delta) {
         if (isDead) {
-            return; // eliminisan - vise se ne krece niti reaguje na input
+            return;
         }
 
         handleMovement(delta);
         updateTransform();
     }
-    
+
     public void applyInput(boolean left, boolean right, boolean forward, boolean backward, boolean boost, boolean shoot) {
         input.setState(left, right, forward && fuel.hasFuel(), backward,
                 boost && fuel.hasFuel(), shoot);
     }
-    /**
-     * Update varijanta za mrezno kontrolisane igrace - NE cita lokalnu tastaturu
-     * (Gdx.input ne postoji/ne vazi za druge igrace), samo primenjuje input
-     * koji je vec postavljen preko applyInput(). 
-     * @param delta
-     */
+
     public void updateNetworked(float delta) {
         if (isDead) {
-            return; // eliminisan - vise se ne krece niti reaguje na input
+            return;
         }
         handleMovement(delta);
         updateTransform();

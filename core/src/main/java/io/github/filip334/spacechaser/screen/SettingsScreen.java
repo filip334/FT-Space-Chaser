@@ -14,11 +14,6 @@ import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.ui.UiPanel;
 import io.github.filip334.spacechaser.settings.GameSettings;
 
-/**
- * Ekran za podesavanja - promena imena igraca i rebind kontrola (W/A/S/D,
- * Shoot, Boost), sa dugmetom "Default" koje vraca kontrole na W/S/A/D,
- * Space i Left Shift.
- */
 public class SettingsScreen extends BaseScreen {
 
     private final GameSettings settings;
@@ -27,11 +22,9 @@ public class SettingsScreen extends BaseScreen {
     private final BitmapFont labelFont;
     private final BitmapFont rowFont;
 
-    // IME
     private final Rectangle nameBox = new Rectangle();
     private final NameEditor nameEditor;
 
-    // KONTROLE - svaki red je jedna vezana akcija (label + trenutni taster)
     private enum Action { MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, SHOOT, BOOST }
 
     private final Action[] actions = Action.values();
@@ -94,7 +87,6 @@ public class SettingsScreen extends BaseScreen {
 
     // ---------------- IME ----------------
 
-    /** @return Y koordinata ispod ovog dela, za sledeci element u redosledu. */
     private float drawNameSection(float startX, float cursorY) {
         batch.begin();
         labelFont.draw(batch, "Player Name", startX, cursorY);
@@ -124,7 +116,6 @@ public class SettingsScreen extends BaseScreen {
     private static final float ROW_HEIGHT = 38f;
     private static final float ROW_WIDTH = 320f;
 
-    /** @return Y koordinata ispod poslednjeg reda kontrola, za sledeci element u redosledu. */
     private float drawControlsSection(float startX, float cursorY) {
         batch.begin();
         labelFont.draw(batch, "Controls", startX, cursorY);
@@ -204,8 +195,6 @@ public class SettingsScreen extends BaseScreen {
 
     // ---------------- DEFAULT / BACK ----------------
 
-    // Back je "izlazna" akcija - veci razmak od Default nego sto bi ga
-    // odvajao od bilo kog drugog susednog dugmeta.
     private static final float DEFAULT_BUTTON_WIDTH = 150f;
     private static final float BACK_EXTRA_GAP = 70f;
 

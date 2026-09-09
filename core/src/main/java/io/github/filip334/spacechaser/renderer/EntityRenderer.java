@@ -12,11 +12,8 @@ import java.util.Map;
 
 public class EntityRenderer {
 
-    private static final float FRAME_DURATION = 1f / 12f; // 12 fps - podesi po zelji
+    private static final float FRAME_DURATION = 1f / 12f;
 
-    // Flame sprite je nacrtan da podrazumevano "gleda" na gore -
-    // ovaj offset ga zarotira da izgleda kao da izbija iz motora unazad.
-    // Ako posle testa izgleda pod pogresnim uglom, promeni znak (+90 <-> -90).
     private static final float FLAME_ROTATION_OFFSET = -90f;
     private static final float FLAME_WIDTH = 11f;
     private static final float FLAME_HEIGHT = 18f;
@@ -28,8 +25,6 @@ public class EntityRenderer {
     private final Texture enemyTexture;
     private final Texture bulletTexture;
 
-    // Svaki igrac ima sopstveni kontroler plamena, da animacija ostane
-    // nezavisna za lokalnog igraca i protivnika.
     private final Map<Player, AnimationController> flameAnimations = new HashMap<>();
 
     // ---------------- KONSTRUKTOR ----------------
@@ -46,9 +41,6 @@ public class EntityRenderer {
 
     // ---------------- UPDATE ----------------
 
-    /**
-     * Poziva se jednom po frejmu da sve aktivne animacije odmaknu (iz GameWorld/MultiplayerGameWorld).
-     */
     public void update(float delta) {
         for (AnimationController controller : flameAnimations.values()) {
             controller.update(delta);
@@ -61,7 +53,7 @@ public class EntityRenderer {
         if (entity instanceof Player) {
             Player player = (Player)entity;
             if (player.isDead()) {
-                return; // eliminisan - brod se vise ne prikazuje na tabli
+                return;
             }
             renderPlayer(batch, player);
         }
@@ -89,7 +81,6 @@ public class EntityRenderer {
             player.getRotation()
         );
 
-        // Plamen je animacija za svako kretanje unapred; boost samo utice na brzinu.
         if (player.isThrusting()) {
             AnimationController flameAnim = getFlameAnimation(player);
             flameAnim.playLoop("flame");
@@ -107,7 +98,6 @@ public class EntityRenderer {
         if (controller == null) {
             controller = new AnimationController();
 
-            // ship_flame.png je 8 frejmova u jednom redu, 40x88 svaki
             controller.add("flame", flameSheet, 8,
                     flameSheet.getWidth() / 8, flameSheet.getHeight(), FRAME_DURATION);
 
@@ -117,12 +107,7 @@ public class EntityRenderer {
         return controller;
     }
 
-    /**
-     * Crta plamen na poziciji motora, rotiran zajedno sa brodom.
-     * localOffsetY > 0 = gornji motor, < 0 = donji motor (u lokalnom sistemu broda).
-     */
     private void drawEngineFlame(SpriteBatch batch, TextureRegion frame, Player player, float localOffsetY) {
-        // iza broda (suprotno od pravca "napred")
         float localOffsetX = -player.getWidth() * 0.6f;
         Vector2 world = RotationUtils.rotateOffset(player.getX(), player.getY(),
                 localOffsetX, localOffsetY, player.getRotation());

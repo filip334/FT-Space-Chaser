@@ -5,11 +5,6 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 import io.github.filip334.spacechaser.settings.GameSettings;
 
-/**
- * Deljena logika za "klikni na ime, upisi novo, Enter/klik van da potvrdis,
- * Escape da otkazes" - ista implementacija je ranije bila zasebno napisana
- * i u MainMenuScreen (pilot box) i u SettingsScreen (Player Name polje).
- */
 public class NameEditor {
 
     private static final int MAX_LENGTH = 16;
@@ -27,7 +22,6 @@ public class NameEditor {
         return editing;
     }
 
-    /** Trenutno ime - sa kursorom ("|") na kraju dok se edituje. */
     public String getDisplayText() {
         return editing ? draft + "|" : draft;
     }

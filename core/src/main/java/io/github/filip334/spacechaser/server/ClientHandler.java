@@ -66,17 +66,15 @@ public class ClientHandler implements Runnable {
 
                 if (received instanceof PlayerInputMessage) {
                     PlayerInputMessage input = (PlayerInputMessage) received;
-                    input.playerId = playerId; // ne veruj klijentu, sam upisi ID
+                    input.playerId = playerId;
                     server.onPlayerInput(input);
                 } else if (received instanceof JoinLobbyMessage) {
                     server.onPlayerNamed(playerId, ((JoinLobbyMessage) received).playerName);
                 } else if (received instanceof PauseMessage) {
-                    // ne veruj klijentovom playerId-u, koristi onaj sa ovog handlera
                     server.onPlayerPauseRequest(playerId, ((PauseMessage) received).pause);
                 }
             }
         } catch (EOFException | SocketException e) {
-            // klijent se diskonektovao - normalno
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }

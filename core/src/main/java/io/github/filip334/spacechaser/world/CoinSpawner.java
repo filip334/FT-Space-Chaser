@@ -5,20 +5,8 @@ import com.badlogic.gdx.utils.Array;
 import io.github.filip334.spacechaser.entity.Coin;
 import io.github.filip334.spacechaser.entity.Wall;
 
-/**
- * Stvara raspored novcica na mapi (original Taito Space Chaser layout) - i
- * na pocetku meca i ponovo kad igraci pokupe sve. Izdvojeno iz GameWorld da
- * simulacija sveta i raspored novcica ne budu u istoj klasi.
- */
 public class CoinSpawner {
 
-    /**
-     * Pozicije novcica sa originalne Taito Space Chaser mape - izvucene iz
-     * vektorizovanog traga screenshot-a, pa poravnate u prave linije i
-     * simetrizovane (levo-desno i gore-dole ogledalo) da bi izgledale
-     * uredno umesto sa sumom iz trasiranja. Koordinate su u jedinicama
-     * celije {col, row} - lako za rucno dotericanje.
-     */
     private static final float[][] COIN_POSITIONS = {
             {1.43f,0.53f}, {1.75f,0.53f}, {2.12f,0.53f}, {2.43f,0.53f}, {2.80f,0.53f}, {3.13f,0.53f},
             {3.70f,0.53f}, {6.30f,0.53f}, {6.87f,0.53f}, {7.57f,0.53f}, {7.89f,0.53f}, {8.25f,0.53f},

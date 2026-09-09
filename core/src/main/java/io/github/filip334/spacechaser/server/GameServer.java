@@ -46,10 +46,6 @@ public class GameServer {
 
     // ---------------- START ----------------
 
-    /**
-     * Bez-arg verzija za pokretanje kroz Thread(server::start, ...) iz MultiplayerScreen.
-     * Ne baca checked IOException napolje jer se pokrece u posebnoj niti.
-     */
     public void start() {
         try {
             serverSocket = new ServerSocket(port);
@@ -71,10 +67,6 @@ public class GameServer {
 
     // ---------------- GET / SET ----------------
 
-    /**
-     * Stvarni port na kome server slusa - kad je konstruktor pozvan sa 0,
-     * OS bira slobodan port, pa se pravi broj saznaje tek posle start().
-     */
     public int getPort() {
         if (serverSocket != null && serverSocket.isBound()) {
             return serverSocket.getLocalPort();
@@ -132,7 +124,7 @@ public class GameServer {
             tick(deltaTime);
 
             try {
-                Thread.sleep(16); // ~60 tick/s
+                Thread.sleep(16);
             } catch (InterruptedException ignored) {}
         }
     }
@@ -147,8 +139,6 @@ public class GameServer {
             broadcastLobbyStatus();
         }
 
-        // Dok je lobby otvoren server samo odrzava veze; simulacija pocinje
-        // tek kada host eksplicitno pritisne Start Game.
         if (!gameStarted) {
             return;
         }
@@ -161,8 +151,6 @@ public class GameServer {
             }
         }
 
-        // Dok je igra pauzirana, simulacija stoji na mestu - i dalje saljemo
-        // snapshot da klijenti ostanu sinhronizovani (samo se nista ne menja).
         if (!paused) {
             world.update(deltaTime);
         }
@@ -179,8 +167,6 @@ public class GameServer {
     }
 
     // ---------------- LOBBY / CONNECTION ----------------
-
-    // pozivi iz ClientHandler-a
 
     public void onPlayerConnected(int playerId) {
         world.spawnPlayer(playerId);
@@ -199,7 +185,6 @@ public class GameServer {
         return "Waiting for player...";
     }
 
-    /** Host pokrece odbrojavanje - i sam host i gost ga vide, igra pocinje kad istekne. */
     public void requestStartCountdown() {
         if (clients.size() >= 2 && !countingDown && !gameStarted) {
             countingDown = true;
@@ -249,7 +234,6 @@ public class GameServer {
         playerNames.remove(playerId);
         world.removePlayer(playerId);
 
-        // Ako neko izadje dok se odbrojava, ne sme da pocne partija sa 1 igracem.
         if (countingDown && clients.size() < 2) {
             countingDown = false;
             countdownRemaining = 0f;
@@ -257,8 +241,6 @@ public class GameServer {
 
         broadcastLobbyStatus();
 
-        // Ako je diskonektovani igrac bio taj koji je pauzirao, ne sme da
-        // ostane trajno zaglavljeno pauzirano - niko drugi ne bi mogao da nastavi.
         if (paused && pausingPlayerId == playerId) {
             paused = false;
             pausingPlayerId = -1;
@@ -268,12 +250,6 @@ public class GameServer {
 
     // ---------------- PAUSE HANDLING ----------------
 
-    /**
-     * Samo igrac koji je pauzirao moze da nastavi igru - dok god je "pause"
-     * true od nekog drugog igraca, zahtevi za pauzu se ignorisu (vec je
-     * pauzirano), a zahtevi za nastavak od nekog drugog se ignorisu (nije
-     * njegova pauza).
-     */
     public void onPlayerPauseRequest(int playerId, boolean wantsPause) {
         if (wantsPause) {
             if (paused) return;

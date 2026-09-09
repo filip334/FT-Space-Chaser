@@ -7,10 +7,6 @@ import com.badlogic.gdx.utils.Array;
 import io.github.filip334.spacechaser.entity.Player;
 import io.github.filip334.spacechaser.entity.Wall;
 
-/**
- *
- * @author Todorovic
- */
 public class CollisionResolver {
     private static final float SKIN = 0.01f;
 
@@ -32,22 +28,18 @@ public class CollisionResolver {
                 continue;
             }
 
-            // Normalu okreni tako da pokazuje
-            // OD zida KA igraču.
             orientNormal(
                     collision.normal,
                     player,
                     wall
             );
 
-            // 1. Izbaci igrača iz zida.
             pushPlayerOut(
                     player,
                     collision.normal,
                     collision.depth
             );
 
-            // 2. Ukloni brzinu koja ide prema zidu.
             removeVelocityIntoWall(
                     player,
                     collision.normal
@@ -155,10 +147,6 @@ public class CollisionResolver {
                 vx * normal.x +
                 vy * normal.y;
 
-        /*
-         * Ako je velocity u pravcu normale,
-         * proveravamo da li ide U zid.
-         */
         if (velocityIntoWall < 0f) {
 
             vx -=

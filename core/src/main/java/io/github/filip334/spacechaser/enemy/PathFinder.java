@@ -156,18 +156,6 @@ public class PathFinder {
         }
     }
 
-    /**
-     * Vraca cvor na (x,y) ako je gazljiv; ako nije - npr. entitet se
-     * trenutno nalazi u "tampon zoni" oko zida koju navigaciona mreza
-     * tretira kao blokiranu - trazi se najblizi gazljivi cvor u sve vecem
-     * radijusu.
-     *
-     * FIX: findPath() je ranije odmah vracao praznu putanju cim start ILI
-     * cilj padnu u takvu tampon celiju, bez obzira da li put realno
-     * postoji. Na gusto zidanoj mapi je raketa vrlo cesto stajala bas u
-     * takvoj celiji (pored bilo kog zida), pa je A* stalno "odustajao" -
-     * to je izgledalo kao da se raketa zbuni i zamrzne.
-     */
     private GridNode getWalkableNode(int x, int y) {
         GridNode direct = getNode(x, y);
         if (direct != null && direct.walkable) {
@@ -181,7 +169,7 @@ public class PathFinder {
             for (int dx = -radius; dx <= radius; dx++) {
                 for (int dy = -radius; dy <= radius; dy++) {
                     if (Math.max(Math.abs(dx), Math.abs(dy)) != radius) {
-                        continue; // samo obod trenutnog radijusa - vec pretrazeno iznutra
+                        continue;
                     }
 
                     GridNode candidate = getNode(x + dx, y + dy);

@@ -6,12 +6,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 
-/**
- * Generise BitmapFont iz Audiowide.ttf TACNO na trazenoj velicini (FreeType),
- * umesto da se LibGDX-ov ugradjeni placeholder font (Arial 15px) rastegne
- * preko setScale() - to je razlog zasto je tekst ranije bio pikselizovan na
- * krupnim velicinama i nejasan na sitnim.
- */
 public final class Fonts {
 
     private static final String FONT_PATH = "fonts/Audiowide-Regular.ttf";
@@ -23,7 +17,6 @@ public final class Fonts {
         return generate(sizePx, color, 0, null);
     }
 
-    /** @param borderWidth 0 = bez konture. borderColor moze biti null ako je borderWidth 0. */
     public static BitmapFont generate(int sizePx, Color color, float borderWidth, Color borderColor) {
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal(FONT_PATH));
         FreeTypeFontGenerator.FreeTypeFontParameter param = new FreeTypeFontGenerator.FreeTypeFontParameter();

@@ -25,7 +25,6 @@ public class GameSettings {
 
     // ---------------- RESET ----------------
 
-    /** Vraca samo kontrole na podrazumevane (W/S/A/D, Space, Left Shift) - ime igraca ostaje nepromenjeno. */
     public void resetControlsToDefault() {
         moveUp = DEFAULT_MOVE_UP;
         moveDown = DEFAULT_MOVE_DOWN;

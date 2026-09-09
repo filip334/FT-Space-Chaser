@@ -14,14 +14,6 @@ import io.github.filip334.spacechaser.ui.Fonts;
 import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.world.GameLayout;
 
-/**
- * Deljeni "PAUSED"/"ELIMINATED"/cekanje-na-protivnika meni preko igre - crno
- * zatamnjenje, naslov, dugmad (Resume/Restart/Main Menu ili samo Leave Match)
- * i pogodak-test za klik. Izdvojeno iz GameScreen-a - ovaj objekat samo crta
- * i kaze KOJE dugme je kliknuto, GameScreen i dalje odlucuje STA se desava
- * na klik (razlicito za singleplayer, MP igraca koji je pauzirao, i MP
- * posmatraca koji samo ceka/gleda).
- */
 public class PauseMenu {
 
     private static final float BUTTON_WIDTH = 260f;
@@ -50,10 +42,6 @@ public class PauseMenu {
         Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
-    /**
-     * @param showRestart true (singleplayer) prikazuje i "Restart", inace
-     *                    samo "Resume" i "Main Menu"/"Leave Match".
-     */
     public void drawMenu(SpriteBatch batch, ShapeRenderer shapeRenderer, String title, boolean showRestart, Vector2 mouse) {
         float centerX = GameLayout.WINDOW_WIDTH / 2f;
         float centerY = GameLayout.WINDOW_HEIGHT / 2f;
@@ -77,7 +65,6 @@ public class PauseMenu {
         }
     }
 
-    /** Prikaz "info + Leave Match" overlaya - koristi ga i cekanje na pauziranog protivnika i mrtav igrac. */
     public void drawInfoLeave(SpriteBatch batch, ShapeRenderer shapeRenderer, String title, String subtitle, Vector2 mouse) {
         float centerX = GameLayout.WINDOW_WIDTH / 2f;
         float centerY = GameLayout.WINDOW_HEIGHT / 2f;
@@ -92,18 +79,15 @@ public class PauseMenu {
         subFont.draw(batch, sub, centerX - sub.width / 2f, centerY);
         batch.end();
 
-        // Vise razmaka izmedju podnaslova i dugmeta nego ranije (bilo je centerY - 30).
         drawButton(batch, shapeRenderer, mainMenuButton, "Leave Match", centerX, centerY - 60f, mouse);
     }
 
-    /** Iscrtava dugme sa gornjom ivicom na topY i vraca topY sledeceg dugmeta ispod. */
     private float drawButtonAndAdvance(SpriteBatch batch, ShapeRenderer shapeRenderer, Rectangle bounds, String label,
                                         float centerX, float topY, Vector2 mouse) {
         drawButton(batch, shapeRenderer, bounds, label, centerX, topY, mouse);
         return topY - BUTTON_HEIGHT - BUTTON_SPACING;
     }
 
-    /** @param topY gornja ivica dugmeta (sva dugmad dele istu fiksnu sirinu/visinu). */
     private void drawButton(SpriteBatch batch, ShapeRenderer shapeRenderer, Rectangle bounds, String label,
                              float centerX, float topY, Vector2 mouse) {
         Buttons.layoutStack(bounds, centerX, topY, BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_SPACING);

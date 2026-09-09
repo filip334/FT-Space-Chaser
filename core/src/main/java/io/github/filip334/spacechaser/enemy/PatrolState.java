@@ -43,16 +43,12 @@ public class PatrolState implements EnemyState {
 
         enemy.moveToTarget(target, delta);
         if (enemy.wasMovementBlocked()) {
-            // Cilj se pokazao nedostupnim (npr. promenjena situacija oko zida) -
-            // odmah biraj novi, bez ponovnog ulaska u stanje.
             pickNextTarget(enemy);
         }
     }
 
     private void pickNextTarget(Enemy enemy) {
         target = enemy.pickPatrolPoint();
-        // Povremeno raketa kratko "predahne" na tacki umesto da odmah krene
-        // dalje - patrola izgleda manje robotski, narocito na gustoj mapi.
         if (MathUtils.randomBoolean(IDLE_CHANCE)) {
             idleTimer = MathUtils.random(IDLE_MIN, IDLE_MAX);
         }

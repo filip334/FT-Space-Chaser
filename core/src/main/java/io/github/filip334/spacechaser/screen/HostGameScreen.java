@@ -15,12 +15,6 @@ import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.network.LanHostAdvertiser;
 import io.github.filip334.spacechaser.network.MultiplayerClient;
 
-/**
- * Ekran na kome host ceka da se pridruzi drugi igrac.
- * Pokrece sopstveni GameServer (na slobodnom, OS-dodeljenom portu, da izbegne
- * sudar sa drugim host-ovima na istoj masini) + UDP oglasivac da bi Join Game
- * ekran mogao da ga pronadje.
- */
 public class HostGameScreen extends BaseScreen {
 
     private static final int MAX_PLAYERS = 2;
@@ -56,14 +50,14 @@ public class HostGameScreen extends BaseScreen {
     public void show() {
         super.show();
 
-        server = new GameServer(0); // 0 = OS bira slobodan port
+        server = new GameServer(0);
 
         Thread serverThread = new Thread(server::start, "GameServer");
         serverThread.setDaemon(true);
         serverThread.start();
 
         try {
-            Thread.sleep(200); // sacekaj da server zavrsi bind pre nego sto se host konektuje
+            Thread.sleep(200);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -110,9 +104,7 @@ public class HostGameScreen extends BaseScreen {
 
     private void proceedToGame() {
         leftScreen = true;
-        if (advertiser != null) advertiser.stop(); // igra je puna, prestani da se oglasavas
-        // navigateTo() ce pozvati dispose() koji dira SAMO GL resurse ovog
-        // ekrana - client/server ostaju zivi, prosledjeni su u GameScreen.
+        if (advertiser != null) advertiser.stop();
         navigateTo(new GameScreen(game, client, server));
     }
 

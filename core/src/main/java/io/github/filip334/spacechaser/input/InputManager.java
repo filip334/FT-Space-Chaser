@@ -15,10 +15,6 @@ public class InputManager{
         this(settings, true);
     }
 
-    /**
-     * Server-side igraci moraju imati false: server prima komande preko mreze
-     * i nikad ne sme da cita tastaturu host aplikacije.
-     */
     public InputManager(GameSettings settings, boolean readsKeyboard) {
         this.settings = settings;
         this.readsKeyboard = readsKeyboard;

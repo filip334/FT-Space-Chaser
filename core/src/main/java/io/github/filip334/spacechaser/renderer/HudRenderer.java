@@ -10,7 +10,6 @@ import io.github.filip334.spacechaser.ui.Theme;
 import io.github.filip334.spacechaser.world.GameLayout;
 public class HudRenderer {
 
-    //
     private final BitmapFont font;
     private final BitmapFont countdownFont;
     private final ShapeRenderer shapeRenderer;
@@ -30,7 +29,6 @@ public class HudRenderer {
 
     // ---------------- RENDER ----------------
 
-    /** Veliki broj na sredini mape - odbrojavanje pre sledeceg talasa. */
     public void renderCountdown(SpriteBatch batch, int secondsRemaining) {
         if (secondsRemaining <= 0) return;
 
@@ -72,9 +70,9 @@ public class HudRenderer {
         int seconds = totalSeconds % 60;
         return String.format("%02d:%02d", minutes, seconds);
     }
-    
+
     // ---------------- RENDER ----------------
-    
+
     public void render(SpriteBatch batch, float health, float maxHealth,
                        float fuel, float maxFuel, int score, float gameTime, int wave) {
         float screenHeight = GameLayout.WINDOW_HEIGHT;
@@ -92,10 +90,6 @@ public class HudRenderer {
         batch.end();
     }
 
-    /**
-     * Multiplayer varijanta: lokalni igrac levo, protivnik desno (mirror),
-     * score/vreme deljeni (dolaze sa servera).
-     */
     public void renderMultiplayer(SpriteBatch batch,
                                    float localHealth, float localMaxHealth,
                                    float localFuel, float localMaxFuel, int localScore,
@@ -112,12 +106,10 @@ public class HudRenderer {
         float healthY = screenHeight - 60f;
         float fuelY = screenHeight - 110f;
 
-        // ---- LOKALNI IGRAC (levo) ----
         float localX = (GameLayout.SIDE_PANEL_WIDTH - barWidth) / 2f;
         drawBar(localX, healthY, barWidth, barHeight, localHealth, localMaxHealth, Color.RED);
         drawBar(localX, fuelY, barWidth, barHeight, localFuel, localMaxFuel, Color.CYAN);
 
-        // ---- PROTIVNIK (desno, mirror) ----
         float opponentX = screenWidth - GameLayout.SIDE_PANEL_WIDTH
                 + (GameLayout.SIDE_PANEL_WIDTH - barWidth) / 2f;
         if (opponentPresent) {
@@ -145,9 +137,9 @@ public class HudRenderer {
 
         batch.end();
     }
-    
+
     // ---------------- DISPOSE ----------------
-    
+
     public void dispose() {
         font.dispose();
         countdownFont.dispose();

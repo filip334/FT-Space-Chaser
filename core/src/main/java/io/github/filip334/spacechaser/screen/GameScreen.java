@@ -26,20 +26,16 @@ import io.github.filip334.spacechaser.world.MultiplayerGameWorld;
 
 public class GameScreen implements Screen {
 
-    // Kada se prozor minimizuje ili izgubi fokus, sledeci frame moze imati
-    // delta od vise sekundi. Ne dozvoljavamo da taj jedan frame pomeri svet.
     private static final float MAX_SIMULATION_DELTA = 1f / 30f;
 
     private final Game game;
     private final SpriteBatch batch;
 
-    // SINGLEPLAYER
     private GameWorld world;
 
-    // MULTIPLAYER
     private MultiplayerClient multiplayerClient;
     private MultiplayerGameWorld multiplayerWorld;
-    private GameServer hostServer; // != null samo kod hosta - da moze da ugasi mec svima kad ode
+    private GameServer hostServer;
     private HudRenderer hudRenderer;
     private final GameSettings settings;
     private final Matrix4 worldTransform = new Matrix4().setToTranslation(GameLayout.WORLD_OFFSET_X, 0f, 0f);
@@ -49,20 +45,16 @@ public class GameScreen implements Screen {
     private volatile boolean serverDisconnected;
     private boolean returningToMenu;
 
-    // PAUZA
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
     private final PauseMenu pauseMenu = new PauseMenu();
     private final Vector2 mouseViewportPos = new Vector2();
 
-    private boolean paused; // singleplayer - lokalno stanje
-    private boolean showHitboxes; // F1 - iskljuceno po podrazumevanju
-    private volatile boolean multiplayerPaused; // multiplayer - stanje sa servera
+    private boolean paused;
+    private boolean showHitboxes;
+    private volatile boolean multiplayerPaused;
     private volatile int pausedByPlayerId = -1;
-    private boolean deadLeaveMenuOpen; // mrtav igrac u multiplayeru - ESC nudi samo Leave Match, ne pauzira zivog igraca
+    private boolean deadLeaveMenuOpen;
 
-    // reportXScore() vraca true SAMO na frejmu kad skor prvi put predje rekord -
-    // na sledecim frejmovima (skor isti/manji od tek upisanog rekorda) vraca
-    // false, pa se mora pamtiti da li je rekord ikad oboren tokom ove partije.
     private boolean newHighScoreAchieved;
 
     // ---------------- KONSTRUKTORI ----------------
@@ -96,7 +88,6 @@ public class GameScreen implements Screen {
         hudRenderer = new HudRenderer();
     }
 
-    /** Koristi host - GameScreen moze da ugasi ceo mec (server) kad host ode. */
     public GameScreen(Game game, MultiplayerClient multiplayerClient, GameServer hostServer) {
         this(game, multiplayerClient);
         this.hostServer = hostServer;
@@ -220,8 +211,6 @@ public class GameScreen implements Screen {
     private void handleMultiplayerPauseKey() {
         if (!Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) return;
 
-        // Mrtav igrac samo ceka kraj meca - nema smisla da moze da pauzira
-        // igru koja se jos igra za ziveg protivnika, pa mu ESC nudi samo izlaz.
         Player local = multiplayerWorld.getLocalPlayer();
         if (local != null && local.isDead()) {
             deadLeaveMenuOpen = !deadLeaveMenuOpen;
@@ -233,8 +222,6 @@ public class GameScreen implements Screen {
         } else if (pausedByPlayerId == multiplayerClient.getLocalPlayerId()) {
             multiplayerClient.sendPause(false);
         }
-        // Ako je pauzirao DRUGI igrac, ESC ovde ne radi nista -
-        // samo taj igrac moze da nastavi igru.
     }
 
     private void handleLeaveOnlyInput() {
@@ -271,18 +258,12 @@ public class GameScreen implements Screen {
         }
     }
 
-    /** Pretvara koordinate misa (piksel ekrana) u koordinate viewport-a - FitViewport moze da leteruje/skalira prozor. */
     private Vector2 pauseMouse() {
         mouseViewportPos.set(Gdx.input.getX(), Gdx.input.getY());
         viewport.unproject(mouseViewportPos);
         return mouseViewportPos;
     }
 
-    /**
-     * Prekida multiplayer sesiju (dispose ovog ekrana, sto vec gasi server/
-     * klijenta - vidi dispose()) - zajednicko za "vrati se u meni" i "mec
-     * gotov" puteve. @return false ako je sesija vec zavrsena (izbegava dupli setScreen).
-     */
     // ---------------- MULTIPLAYER SESSION ----------------
 
     private boolean endMultiplayerSession() {
@@ -328,11 +309,6 @@ public class GameScreen implements Screen {
         }
     }
 
-    /**
-     * Cita lokalnu tastaturu i salje input serveru - server je autoritativan,
-     * ovaj klijent NE simulira sopstveno kretanje, samo prikazuje ono sto
-     * server vrati kroz snapshot (jednostavno, bez client-side prediction za sad).
-     */
     // ---------------- INPUT ----------------
 
     private void sendLocalInput() {
@@ -351,11 +327,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
-        // Host koji izlazi mora da ugasi ceo server - u suprotnom se samo
-        // njegov sopstveni (loopback) klijent diskonektuje, a mec i server
-        // ostaju da rade dalje i gost ostaje da igra sam bez ikakve poruke.
-        // dispose() se poziva na SVAKOM putu napustanja ekrana (vidi
-        // endMultiplayerSession()), pa je ovo i jedino mesto gde treba da stoji.
         if (hostServer != null) hostServer.stop();
         if (world != null) world.dispose();
         if (multiplayerWorld != null) multiplayerWorld.dispose();
@@ -372,11 +343,6 @@ public class GameScreen implements Screen {
     public void show() {
     }
 
-    // Odmah po otvaranju ekrana zna da stigne i po nekoliko resize() poziva
-    // koji NISU korisnikovo prevlacenje ivice prozora (npr. Windows sam
-    // sazme prozor da stane na ekran ako je prevelik) - Game.setScreen() k
-    // tome uvek posalje jedan odmah posle show(). Zato se auto-pauza ignorise
-    // kratko posle kreiranja ekrana, dok se prozor "ne slegne".
     private static final long RESIZE_AUTOPAUSE_GRACE_MILLIS = 1000L;
     private final long createdAtMillis = TimeUtils.millis();
 
@@ -384,12 +350,6 @@ public class GameScreen implements Screen {
     public void resize(int width, int height) {
         viewport.update(width, height, true);
 
-        // Windows-ov modalni resize-drag loop ne pusta normalan game-loop
-        // tick dok korisnik drzi ivicu prozora, pa world.update(delta)
-        // efektivno stoji u mestu i izgleda kao da se igra zaglavila. Posle
-        // pocetnog "slegnuvsi se" perioda, svaki resize() je stvarno
-        // korisnikovo prevlacenje - pauziramo (SP) da to deluje namerno
-        // (isti PAUSED meni kao na ESC) umesto kao zamrzavanje.
         boolean pastStartupGrace = TimeUtils.timeSinceMillis(createdAtMillis) >= RESIZE_AUTOPAUSE_GRACE_MILLIS;
         if (pastStartupGrace && multiplayerClient == null && world != null) {
             paused = true;

@@ -8,25 +8,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import io.github.filip334.spacechaser.util.RotationUtils;
 
-/**
- * Deljena "brod kog juri raketa" dekorativna scena - koristi je Main Menu i
- * Multiplayer ekran (MenuAssets/shipBackground1.png, MenuAssets/enemy.png,
- * MenuAssets/engineFireMainMenu.png).
- * <p>
- * Uglovi ispod NISU proizvoljni - izmereni su analizom piksela samih slika
- * (najudaljenija tacka od centra/PCA osa svakog motora posebno). Ne menjati
- * bez ponovne analize ako se slike promene.
- */
 public final class ChaseArt {
 
-    // Javno dostupno da bi ekrani mogli da racunaju pozicije "iza broda" duz
-    // istog pravca (npr. gde da stavi neprijatelja u odnosu na brod).
-    public static final float TRAIL_ANGLE_DEG = 42f; // pravac repa/kretanja cele siluete broda
-    private static final float SHIP_TRAVEL_ANGLE_DEG = TRAIL_ANGLE_DEG + 180f; // pravac nosa
-    // Ugao SVAKOG pojedinacnog motora broda (gornji je nagnut plice od donjeg).
+    public static final float TRAIL_ANGLE_DEG = 42f;
+    private static final float SHIP_TRAVEL_ANGLE_DEG = TRAIL_ANGLE_DEG + 180f;
     private static final float FLAME_ANGLE_TOP_DEG = 27f;
     private static final float FLAME_ANGLE_BOTTOM_DEG = 30f;
-    // enemy.png je nacrtan da nos gleda pravo gore (90 stepeni).
     private static final float ENEMY_TEXTURE_NOSE_DEG = 90f;
     private static final float ENEMY_ROTATION_DEG = SHIP_TRAVEL_ANGLE_DEG - ENEMY_TEXTURE_NOSE_DEG;
 
@@ -35,7 +22,6 @@ public final class ChaseArt {
 
     // ---------------- SHIP ----------------
 
-    /** Igracev brod (uvek prirodan ugao slike, bez rotacije) sa dva plamena iz motora. */
     public static void drawShip(SpriteBatch batch, Texture shipTexture, Texture fireTexture,
                                  float centerX, float centerY, float shipHeight, float alpha) {
         float ratio = shipTexture.getWidth() / (float) shipTexture.getHeight();
@@ -49,7 +35,6 @@ public final class ChaseArt {
                 shipWidth * 0.42f, FLAME_ANGLE_BOTTOM_DEG, alpha);
 
         batch.begin();
-        // blagi cyan glow iza broda
         batch.setColor(0f, 0.9f, 1f, 0.10f * alpha);
         batch.draw(shipTexture, x, y, shipWidth / 2f, shipHeight / 2f, shipWidth, shipHeight,
                 1f, 1f, 0f, 0, 0, shipTexture.getWidth(), shipTexture.getHeight(), false, false);
@@ -63,15 +48,12 @@ public final class ChaseArt {
 
     // ---------------- ENEMY ----------------
 
-    /** Neprijatelj rotiran u pravcu kretanja (kao da juri) sa jednim plamenom iz motora. */
     public static void drawEnemy(SpriteBatch batch, Texture enemyTexture, Texture fireTexture,
                                   float centerX, float centerY, float enemyHeight, float alpha) {
         float enemyWidth = enemyHeight * (enemyTexture.getWidth() / (float) enemyTexture.getHeight());
         float x = centerX - enemyWidth / 2f;
         float y = centerY - enemyHeight / 2f;
 
-        // Motor je pri dnu (necentrirano) enemy.png teksture pre rotacije -
-        // pretvori taj lokalni pomeraj u svetske koordinate NAKON rotacije tela.
         float localOffsetY = -enemyHeight * 0.38f;
         Vector2 flame = RotationUtils.rotateOffset(centerX, centerY, 0f, localOffsetY, ENEMY_ROTATION_DEG);
 
@@ -87,10 +69,6 @@ public final class ChaseArt {
 
     // ---------------- ENGINE FIRE ----------------
 
-    /**
-     * Crta plamen motora tako da mu je svetao vrh na (anchorX, anchorY) i
-     * proteze se unazad u trailAngleDeg pravcu (iza broda/neprijatelja).
-     */
     private static void drawEngineFire(SpriteBatch batch, Texture fireTexture, float anchorX, float anchorY,
                                         float flameWidth, float trailAngleDeg, float alpha) {
         float flameHeight = flameWidth * (fireTexture.getHeight() / (float) fireTexture.getWidth());

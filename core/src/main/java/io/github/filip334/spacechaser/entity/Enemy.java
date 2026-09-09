@@ -32,26 +32,14 @@ public class Enemy extends Entity{
     public final float DAMAGE = 33f;
     
     private static final float PATROL_MARGIN = 80f;
-    // FIX: sa 110 su se na uskim hodnicima nove mape (koji su cesto uzi od
-    // 2*110) sile odbijanja od zidova sa obe strane skoro ponistavale, a
-    // neto vektor je u toj zoni izuzetno osetljiv na sitne pomeraje pozicije -
-    // ugao (rotation) je zato skakao levo-desno iz frejma u frejm dok se
-    // raketa jedva pomerala ("zamrznuto + trza se"). Izmereno na trenutnoj
-    // mapi: na 110 oko 46% prohodnih celija ima ovaj problem, na 45 manje
-    // od 1%, uz i dalje dovoljno prostora da raketa reaguje pre fizickog
-    // sudara (hitbox poluprecnik ~20).
     private static final float WALL_AVOIDANCE_RADIUS = 45f;
     private static final float TURN_SPEED = 240f;
 
-    // Poeni koje igrac dobija za ubistvo ovog neprijatelja - GameWorld ga
-    // postavlja po talasu (kasniji talasi vrede vise).
     private int scoreValue = 10;
 
     // ---------------- KONSTRUKTOR ----------------
 
     public Enemy(float x, float y) {
-        //collisionType = CollisionType.ENEMY;
-
         this.x = x;
         this.y = y;
         
@@ -65,8 +53,6 @@ public class Enemy extends Entity{
         hitbox = new CompoundHitbox();
         hitbox.addBox(0, 0, width/2+15, 10);
 
-        // TEXTURE DEF
-        
         stateMachine = new StateMachine();
         
         stateMachine.changeState(
@@ -83,7 +69,6 @@ public class Enemy extends Entity{
         return new PatrolState();
     }
 
-    /** Postavlja granice mape i zidove koje AI mora da izbegava. */
     public void setNavigation(Array<Wall> walls, float fieldX, float fieldY,
                               float fieldWidth, float fieldHeight,
                               PathFinder pathFinder, float cellSize) {
@@ -112,21 +97,6 @@ public class Enemy extends Entity{
         moveToTarget(player.getPosition(), delta);
     }
 
-    /**
-     * Generalizovano kretanje ka bilo kojoj meti (igrac ili patrol tacka).
-     *
-     * FIX: ranije je PatrolState zvao samo moveTowards() (cist lokalni
-     * steering + izbegavanje zida). U konkavnim uglovima / tesnim
-     * prolazima moze da se desi da NIJEDAN od tri lokalna pokusaja
-     * (pravo, levo, desno) ne uspe da prodje - raketa ostaje fizicki
-     * zaglavljena na istoj poziciji. Kako je PatrolState svaki frejm
-     * u tom slucaju birao NOVU nasumicnu patrol tacku (movementBlocked),
-     * pravac ka novoj (nasumicnoj) meti se menjao svaki frejm dok je
-     * pozicija ostajala ista - to je izgledalo kao "freeze + trzanje
-     * ugla". moveToPlayer() je vec imao A* fallback za tacno ovaj
-     * slucaj (zato je chase odmah "provalio" kroz prepreku) - sada
-     * isti fallback koristi i patrola, preko ove generalizovane metode.
-     */
     public void moveToTarget(Vector2 target, float delta) {
         if (isPathClear(target)) {
             chasePath.clear();
@@ -193,20 +163,6 @@ public class Enemy extends Entity{
                 0, (int) ((navigationMaxY - navigationMinY + PATROL_MARGIN * 2f) / navigationCellSize) - 1);
     }
 
-    /**
-     * Bira jednu nasumicnu patrol tacku umesto cele liste unapred - PatrolState
-     * je poziva svaki put kad raketa stigne na cilj, tako da se dostiznost
-     * uvek proverava iz STVARNE trenutne pozicije.
-     *
-     * FIX: stara varijanta je proveravala samo pravu liniju (isPathClear).
-     * Na gusto zidanoj mapi to cesto ne prolazi ni za jednu od 30 nasumicnih
-     * tacaka, pa je metoda vracala trenutnu poziciju rakete kao "cilj" -
-     * raketa je odmah "stizala" na sopstvenu poziciju, birala novu tacku,
-     * opet promasila pravu liniju... i izgledalo je kao zamrzavanje.
-     * Sada, kad prava linija ne prolazi, tacka se dodatno proverava preko
-     * A* (PathFinder) - ako postoji ma kakav put do nje, prihvata se, pa
-     * kretanje do cilja kasnije preuzima moveToTarget()/rebuildChasePath().
-     */
     public Vector2 pickPatrolPoint() {
         if (navigationWalls == null || pathFinder == null) {
             return new Vector2(x, y);
@@ -236,7 +192,6 @@ public class Enemy extends Entity{
     
     
     // ---------------- SEPARATION ----------------
-    // RAKETE SE NE POKLAPAJU
 
     public void applySeparation(Array<Enemy> enemies, float delta) {
         float separationRadius = 60f;
@@ -267,10 +222,6 @@ public class Enemy extends Entity{
             return;
         }
 
-        // FIX: pre ove izmene se pomeraj primenjivao bez provere zida,
-        // pa su dve rakete koje se guraju blizu zida mogle da se "zaglave"
-        // unutar njega (svaki naredni tryMove() bi detektovao overlap i
-        // vratio poziciju na tu vec zaglavljenu tacku).
         float savedX = x;
         float savedY = y;
 
@@ -293,7 +244,6 @@ public class Enemy extends Entity{
 
     // ---------------- GET / SET ----------------
 
-    /** Postavlja i max i trenutno zdravlje (koristi GameWorld pri stvaranju talasa). */
     public void setMaxHealth(float maxHealth) {
         this.health = new HealthComponent(maxHealth);
     }
@@ -306,7 +256,6 @@ public class Enemy extends Entity{
         this.scoreValue = scoreValue;
     }
 
-    //
     public StateMachine getStateMachine() {
         return stateMachine;
     }
@@ -357,27 +306,9 @@ public class Enemy extends Entity{
             steering.set(direction);
         }
 
-        // Kad glavni pokusaj (steering) udari u zid, probni pravci levo/desno
-        // se racunaju od "direction" (ne "steering") - vidi attemptMove().
         attemptMove(direction, steering, 1.25f, delta);
     }
 
-    /**
-     * Pracenje A* waypoint-a namerno ne koristi kontinualno odbijanje od zida
-     * (calculateWallAvoidance) - waypoint je vec izabran kao bezbedan, pa bi
-     * dodatno skretanje izazvalo osciliranje levo-desno uz uglove prepreka.
-     *
-     * FIX: ali dok je postojao SAMO ovaj jedan pokusaj (prava linija do
-     * waypoint-a), raketa je znala trajno da se zaglavi - waypoint je centar
-     * navigacione celije i sam po sebi bezbedan, ali prava linija DO njega
-     * iz trenutne (van-centra) pozicije ume da okrzne ugao zida. Kad taj
-     * jedini pokusaj promasi, movementBlocked=true forsira ponovnu izgradnju
-     * ISTE putanje sledeceg frejma (pozicija/cilj se nisu promenili) -> isti
-     * promasaj -> beskonacna petlja bez ijednog pomeraja (ChaseState/
-     * SearchState, za razliku od PatrolState, nemaju sopstveni izlaz iz ovoga).
-     * Dodati su isti probni pravci levo/desno kao u moveTowards(), samo sa
-     * blazim uglom skretanja jer je waypoint vec precizan cilj.
-     */
     private void moveToWaypoint(Vector2 target, float delta) {
         movementBlocked = false;
         previousRotation = rotation;
@@ -396,14 +327,6 @@ public class Enemy extends Entity{
         attemptMove(direction, direction, 0.6f, delta);
     }
 
-    /**
-     * Deljena logika za moveTowards()/moveToWaypoint(): probaj primaryDirection,
-     * pa ako udari u zid probaj skretanje levo/desno od "direction" (sideAngleScale
-     * kontrolise ostrinu skretanja - moveTowards ide oko zida siroko jer nema
-     * fiksan bezbedan cilj, moveToWaypoint blago jer je waypoint vec bezbedan).
-     * Ako sva 3 pokusaja udare u zid, raketa ostaje na mestu (movementBlocked=true)
-     * i vraca poslednji stabilan ugao umesto da vizuelno skace levo-desno.
-     */
     private void attemptMove(Vector2 direction, Vector2 primaryDirection, float sideAngleScale, float delta) {
         if (tryMove(primaryDirection, delta)) {
             return;
@@ -427,14 +350,6 @@ public class Enemy extends Entity{
     }
 
     private boolean tryMove(Vector2 direction, float delta) {
-        // FIX: sacuvaj ugao PRE pokusaja, ne samo poziciju. Pre ove izmene,
-        // kada bi ovaj pokusaj udario u zid, x/y su se vracali na
-        // previousX/Y ali je "rotation" ostajao promenjen ka neuspelom
-        // smeru. moveTowards() zove tryMove() do 3 puta po frejmu
-        // (steering -> left -> right), pa se rotacija akumulirala kroz
-        // sva tri neuspela pokusaja u istom frejmu -> raketa je izgledala
-        // "zamrznuto" (pozicija se nije menjala) uz brzo skakanje ugla
-        // levo-desno (rotacija se menjala 3x ka razlicitim smerovima).
         float baseRotation = rotation;
 
         float nextX = x + direction.x * acceleration * delta;
@@ -460,7 +375,6 @@ public class Enemy extends Entity{
         return true;
     }
 
-    /** Ogranicava okretanje, tako da promena waypointa ne izazove vizuelni skok od 180 stepeni. */
     private float rotateTowards(float desiredRotation, float delta) {
         float difference = (desiredRotation - rotation + 540f) % 360f - 180f;
         float maxTurn = TURN_SPEED * delta;
@@ -543,6 +457,7 @@ public class Enemy extends Entity{
         }
         return false;
     }
+
     // ---------------- PERCEPTION ----------------
 
     public boolean canSeePlayer() {
@@ -551,9 +466,6 @@ public class Enemy extends Entity{
             return false;
         }
 
-        // "Besna" raketa (malo ih je ostalo u talasu) juri igraca bez obzira
-        // na rastojanje/vidljivost - sprecava da igrac ostavi 1-2 rakete u
-        // patroli i bezbedno farmi novcice/vreme dok ih izbegava.
         if (enraged) {
             return true;
         }

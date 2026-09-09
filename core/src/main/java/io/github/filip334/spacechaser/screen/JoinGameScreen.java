@@ -16,10 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Prikazuje listu trenutno otvorenih hostovanih igara na LAN mrezi
- * (pronadjenih preko LanGameDiscovery) i omogucava klik za konekciju.
- */
 public class JoinGameScreen extends BaseScreen {
 
     private final BitmapFont titleFont;
@@ -104,8 +100,6 @@ public class JoinGameScreen extends BaseScreen {
             rowY -= rowHeight + 14f;
         }
 
-        // Back je "izlazna" akcija - veci razmak od Refresh nego sto bi ga
-        // odvajao od bilo kog drugog susednog dugmeta.
         float refreshWidth = 130f;
         float backExtraGap = 70f;
         refreshButton.set(40f, 70f, refreshWidth, 44f);

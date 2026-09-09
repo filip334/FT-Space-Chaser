@@ -9,11 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Client-side LAN discovery: salje UDP broadcast upit i skuplja odgovore
- * svih pokrenutih LanHostAdvertiser instanci na mrezi u odredjenom prozoru vremena.
- * Poziva se sa pozadinske niti - scan() blokira do isteka timeout-a.
- */
 public class LanGameDiscovery {
 
     private static final String DISCOVER_REQUEST = "SPACECHASER_DISCOVER";
@@ -83,7 +78,6 @@ public class LanGameDiscovery {
                     }
 
                 } catch (SocketTimeoutException ignored) {
-                    // normalno - samo nastavi da ceka do deadline-a
                 }
             }
 

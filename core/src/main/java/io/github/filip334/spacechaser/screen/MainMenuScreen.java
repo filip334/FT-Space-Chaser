@@ -25,12 +25,6 @@ public class MainMenuScreen extends BaseScreen {
     private Texture enemyTexture;
     private Texture engineFireTexture;
     private final String statusMessage;
-    // Ne mere se od konstruktora/prvog delta-a - konstruktor sinhrono ucitava
-    // 3 teksture + 3 fonta (FreeType generise iznova svaki put, bez kesiranja),
-    // sto moze potrajati i to bi "pojelo" veci deo od 10 sekundi ako bismo
-    // sabirali delta od prvog render() poziva (taj prvi delta ukljucuje i
-    // vreme ucitavanja). Umesto toga, satat se prvi put kad se poruka STVARNO
-    // nacrta na ekranu, pa se broji stvarno proteklo vreme od tog trenutka.
     private long statusMessageShownAtMillis = -1L;
     private static final float STATUS_MESSAGE_DURATION = 10f;
 
@@ -108,7 +102,6 @@ public class MainMenuScreen extends BaseScreen {
         float y = height * 0.94f;
 
         batch.begin();
-        // blagi glow iza teksta - isti tekst iscrtan malo vece/providnije pozadi
         titleFont.getData().setScale(1.04f);
         titleFont.setColor(Theme.CYAN.r, Theme.CYAN.g, Theme.CYAN.b, 0.5f);
         GlyphLayout glowLayout = new GlyphLayout(titleFont, title);
@@ -127,18 +120,12 @@ public class MainMenuScreen extends BaseScreen {
 
     private void drawShip(float width, float height) {
         float shipHeight = height * 0.62f;
-        // Centrirano na sredini ekrana - slika vec ima svoj prirodan dijagonalan
-        // ugao, ne treba joj vise rotacija kao staroj Original/ship.png teksturi.
         ChaseArt.drawShip(batch, shipTexture, engineFireTexture, width / 2f, height / 2f, shipHeight, 1f);
     }
 
-    /**
-     * Neprijatelj negde iza broda, okrenut u istom pravcu kretanja kao igrac -
-     * izgleda kao da ga juri. Manji je i dalje od centra (dublje u pozadini).
-     */
     private void drawEnemy(float width, float height) {
         float enemyHeight = height * 0.17f;
-        float chaseOffset = height * 0.53f; // malo vise ka gornjem desnom cosku
+        float chaseOffset = height * 0.53f;
         float rad = (float) Math.toRadians(ChaseArt.TRAIL_ANGLE_DEG);
         float centerX = width / 2f + chaseOffset * (float) Math.cos(rad);
         float centerY = height / 2f + chaseOffset * (float) Math.sin(rad);
@@ -176,8 +163,6 @@ public class MainMenuScreen extends BaseScreen {
         }
         if (TimeUtils.timeSinceMillis(statusMessageShownAtMillis) >= STATUS_MESSAGE_DURATION * 1000L) return;
 
-        // Centrirano, skroz na dnu ekrana - menu i pilot box su u uglovima,
-        // ovde po sredini nema sa cim da se preklopi.
         GlyphLayout layout = new GlyphLayout(smallFont, statusMessage);
         float paddingX = 24f;
         float paddingY = 14f;

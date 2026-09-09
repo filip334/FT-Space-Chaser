@@ -7,43 +7,34 @@ import io.github.filip334.spacechaser.collision.CompoundHitbox;
 import io.github.filip334.spacechaser.component.HealthComponent;
 
 public abstract class Entity {
-    
-    // POSITION
+
     protected float x,y;
     protected float previousX,previousY;
-    
-    // ROTATION
+
     protected float rotation;
     protected float previousRotation;
-    
-    // SIZE
+
     protected float width,height;
-    
-    // SPEED
+
     protected float maxSpeed;
     protected float acceleration;
     protected float boostAcceleration;
     protected float rotationSpeed;
     protected final float drag = 0.97f;
-    
+
     protected float velocityX = 0;
     protected float velocityY = 0;
-    
-    // HEALT
+
     HealthComponent health;
-    
-    // HITBOX
+
     protected CompoundHitbox hitbox;
-    
-    // STATE
+
     protected boolean isDead;
-    
-    // TEXTURE
+
     protected Texture entityTexture;
-    
+
     // ---------------- GET / SET ----------------
 
-        // POSITION
     public float getX(){
         return this.x;
     }
@@ -70,7 +61,6 @@ public abstract class Entity {
         return previousY;
     }
 
-        // VELOCITY
     public float getVelocityX() {
         return velocityX;
     }
@@ -84,7 +74,6 @@ public abstract class Entity {
         this.velocityY = velocityY;
     }
 
-        // ROTATION
     public float getRotation(){
         return this.rotation;
     }
@@ -97,29 +86,25 @@ public abstract class Entity {
     public void setPreviousRotation(float previousRotation) {
         this.previousRotation = previousRotation;
     }
-    
-        // SIZE
+
     public float getHeight(){
         return this.height;
     }
     public float getWidth(){
         return this.width;
     }
-        
-        // STATE
+
     public boolean isDead(){
         return isDead;
     }
     public void isDead(boolean state){
         isDead = state;
     }
-    
-        // HITBOX
+
     public CompoundHitbox getHitbox(){
         return this.hitbox;
     }
-    
-        // HEALTH
+
     public float getHealth() {
         return health.getHealth();
     }
